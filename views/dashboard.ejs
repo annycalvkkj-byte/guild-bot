@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard Guilda</title>
+    <style>
+        body { font-family: sans-serif; background: #1a1a1a; color: white; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #444; padding: 10px; text-align: left; }
+        th { background: #333; }
+        .active { color: #00ff00; }
+        .inactive { color: #ff4444; }
+    </style>
+</head>
+<body>
+    <h1>Membros da Guilda</h1>
+    <table>
+        <tr>
+            <th>Discord</th>
+            <th>Nick FF</th>
+            <th>ID FF</th>
+            <th>Última Atividade</th>
+        </tr>
+        <% users.forEach(u => { %>
+        <tr>
+            <td><%= u.username %></td>
+            <td><%= u.ffNick %></td>
+            <td><%= u.ffId %></td>
+            <td class="<%= (Date.now() - u.lastMessage > 604800000) ? 'inactive' : 'active' %>">
+                <%= u.lastMessage.toLocaleDateString() %>
+            </td>
+        </tr>
+        <% }) %>
+    </table>
+</body>
+</html>
