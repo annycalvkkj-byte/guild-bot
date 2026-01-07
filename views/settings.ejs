@@ -1,62 +1,71 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Configurações da Guilda</title>
+    <title>Configurações do Bot</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; display: flex; justify-content: center; padding: 20px; }
-        .container { background: #1e1e1e; padding: 30px; border-radius: 12px; width: 100%; max-width: 600px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        h1 { color: #5865F2; text-align: center; }
-        label { display: block; margin-top: 15px; font-weight: bold; color: #bbb; }
-        select, input, textarea { width: 100%; padding: 12px; margin-top: 5px; background: #2f3136; border: 1px solid #444; color: white; border-radius: 5px; }
-        button { width: 100%; padding: 15px; background: #5865F2; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 25px; font-size: 16px; font-weight: bold; }
-        button:hover { background: #4752c4; }
-        .back-link { display: block; text-align: center; margin-top: 15px; color: #aaa; text-decoration: none; }
+        body { background: #121212; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; }
+        nav { background: #1e1e1e; padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #5865F2; }
+        .container { padding: 40px; max-width: 600px; margin: auto; }
+        .card { background: #1e1e1e; padding: 30px; border-radius: 10px; }
+        select, input { width: 100%; padding: 12px; margin: 10px 0; background: #2f3136; color: white; border: 1px solid #444; border-radius: 5px; }
+        button { background: #43b581; color: white; width: 100%; padding: 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 20px; }
+        .btn-back { color: #aaa; text-decoration: none; font-size: 14px; }
+        .success-msg { background: #43b581; color: white; padding: 10px; border-radius: 5px; margin-bottom: 20px; text-align: center; }
     </style>
 </head>
 <body>
+    <nav>
+        <span>⚙️ CONFIGURAÇÕES</span>
+        <a href="/dashboard" style="color: white; text-decoration: none;">📊 VER MEMBROS</a>
+    </nav>
+
     <div class="container">
-        <h1>Painel de Controle</h1>
-        <form action="/settings/save" method="POST">
-            
-            <label>Cargo de Novato (Remover ao verificar):</label>
-            <select name="roleNovato">
-                <option value="none">-- Nenhum / Não remover nada --</option>
-                <% roles.forEach(role => { %>
-                    <option value="<%= role.id %>" <%= config.roleNovato == role.id ? 'selected' : '' %>><%= role.name %></option>
-                <% }) %>
-            </select>
+        <div class="card">
+            <% if (typeof success !== 'undefined' || false) { %>
+                <div class="success-msg">✅ Configurações salvas com sucesso!</div>
+            <% } %>
 
-            <label>Cargo 1 para entregar (Ex: Membro):</label>
-            <select name="roleVerificado1">
-                <option value="none">-- Nenhum --</option>
-                <% roles.forEach(role => { %>
-                    <option value="<%= role.id %>" <%= config.roleVerificado1 == role.id ? 'selected' : '' %>><%= role.name %></option>
-                <% }) %>
-            </select>
+            <form action="/save" method="POST">
+                <label>Remover cargo ao verificar (ex: Novato):</label>
+                <select name="roleNovato">
+                    <option value="">-- Nenhum --</option>
+                    <% roles.forEach(r => { %>
+                        <option value="<%= r.id %>" <%= config.roleNovato == r.id ? 'selected' : '' %>><%= r.name %></option>
+                    <% }) %>
+                </select>
 
-            <label>Cargo 2 para entregar (Ex: Verificado):</label>
-            <select name="roleVerificado2">
-                <option value="none">-- Nenhum --</option>
-                <% roles.forEach(role => { %>
-                    <option value="<%= role.id %>" <%= config.roleVerificado2 == role.id ? 'selected' : '' %>><%= role.name %></option>
-                <% }) %>
-            </select>
+                <label>Dar este cargo 1:</label>
+                <select name="roleVerificado1">
+                    <option value="">-- Nenhum --</option>
+                    <% roles.forEach(r => { %>
+                        <option value="<%= r.id %>" <%= config.roleVerificado1 == r.id ? 'selected' : '' %>><%= r.name %></option>
+                    <% }) %>
+                </select>
 
-            <label>Canal de Avisos (Guerra de Guilda):</label>
-            <select name="canalAviso">
-                <option value="none">-- Nenhum / Não avisar --</option>
-                <% channels.forEach(ch => { %>
-                    <option value="<%= ch.id %>" <%= config.canalAviso == ch.id ? 'selected' : '' %>><%= ch.name %></option>
-                <% }) %>
-            </select>
+                <label>Dar este cargo 2:</label>
+                <select name="roleVerificado2">
+                    <option value="">-- Nenhum --</option>
+                    <% roles.forEach(r => { %>
+                        <option value="<%= r.id %>" <%= config.roleVerificado2 == r.id ? 'selected' : '' %>><%= r.name %></option>
+                    <% }) %>
+                </select>
 
-            <label>Mensagem da Guerra:</label>
-            <textarea name="msgGuerra" rows="2"><%= config.msgGuerra || '@everyone A Guerra começou!' %></textarea>
+                <label>Canal para o aviso de Sábado:</label>
+                <select name="canalAviso">
+                    <option value="">-- Nenhum --</option>
+                    <% channels.forEach(c => { %>
+                        <option value="<%= c.id %>" <%= config.canalAviso == c.id ? 'selected' : '' %>><%= c.name %></option>
+                    <% }) %>
+                </select>
 
-            <button type="submit">SALVAR CONFIGURAÇÕES</button>
-        </form>
-        <a href="/dashboard" class="back-link">Ver Lista de Membros</a>
+                <label>Mensagem da Guerra:</label>
+                <input type="text" name="msgGuerra" value="<%= config.msgGuerra || '@everyone Guerra de Guilda!' %>">
+
+                <button type="submit">SALVAR CONFIGURAÇÕES</button>
+            </form>
+            <br>
+            <center><a href="/dashboard" class="btn-back">Cancelar e Voltar</a></center>
+        </div>
     </div>
 </body>
 </html>
