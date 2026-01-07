@@ -2,55 +2,48 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Guilda</title>
+    <title>Painel da Guilda</title>
     <style>
-        :root { --discord-bg: #2c2f33; --discord-card: #23272a; --discord-blue: #5865F2; --text: #ffffff; }
-        body { background: var(--discord-bg); color: var(--text); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 0; }
-        nav { background: var(--discord-card); padding: 15px 50px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .btn { background: var(--discord-blue); color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; transition: 0.3s; }
-        .btn:hover { background: #4752c4; }
-        .container { padding: 40px; }
-        .member-list { width: 100%; border-collapse: collapse; background: var(--discord-card); border-radius: 10px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
-        th { background: #1a1c1e; padding: 20px; text-align: left; color: var(--discord-blue); text-transform: uppercase; font-size: 12px; }
-        td { padding: 15px 20px; border-bottom: 1px solid #2f3136; }
-        .user-info { display: flex; align-items: center; gap: 10px; }
-        .user-info img { width: 40px; height: 40px; border-radius: 50%; }
-        .badge { padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
-        .badge-active { background: #43b581; }
-        .badge-inactive { background: #f04747; }
-        .ff-id { font-family: 'Courier New', monospace; color: #aaa; }
+        body { background: #2c2f33; color: white; font-family: sans-serif; margin: 0; }
+        nav { background: #23272a; padding: 20px; display: flex; justify-content: space-between; border-bottom: 2px solid #5865F2; }
+        .container { padding: 30px; }
+        table { width: 100%; background: #23272a; border-radius: 8px; border-collapse: collapse; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #2f3136; }
+        .membro { display: flex; align-items: center; gap: 10px; }
+        .membro img { width: 35px; border-radius: 50%; }
+        .status-on { color: #43b581; font-weight: bold; }
+        .status-off { color: #f04747; font-weight: bold; }
     </style>
 </head>
 <body>
     <nav>
-        <h2 style="margin:0">⚔️ PAINEL DA GUILDA</h2>
-        <a href="/settings" class="btn">⚙️ CONFIGURAÇÕES</a>
+        <span>⚔️ PAINEL DE MEMBROS</span>
+        <a href="/settings" style="color: white; text-decoration: none; font-weight: bold;">⚙️ CONFIGURAÇÕES</a>
     </nav>
     <div class="container">
-        <h1>Membros da Guilda</h1>
-        <table class="member-list">
+        <table>
             <thead>
                 <tr>
                     <th>Membro Discord</th>
-                    <th>Nick Free Fire</th>
-                    <th>ID (UID)</th>
+                    <th>Nick FF</th>
+                    <th>UID FF</th>
                     <th>Atividade</th>
                 </tr>
             </thead>
             <tbody>
                 <% members.forEach(m => { %>
                 <tr>
-                    <td class="user-info">
-                        <img src="<%= m.avatar %>">
-                        <span><%= m.name %></span>
+                    <td class="membro">
+                        <img src="<%= m.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png' %>">
+                        <%= m.name %>
                     </td>
-                    <td><b style="color: #ffcc00;"><%= m.ffNick %></b></td>
-                    <td class="ff-id"><%= m.ffId %></td>
+                    <td style="color:#ffcc00"><%= m.ffNick %></td>
+                    <td style="font-family: monospace;"><%= m.ffId %></td>
                     <td>
                         <% if (Date.now() - m.lastMessage > 604800000) { %>
-                            <span class="badge badge-inactive">🔴 INATIVO</span>
+                            <span class="status-off">🔴 INATIVO</span>
                         <% } else { %>
-                            <span class="badge badge-active">🟢 ATIVO</span>
+                            <span class="status-on">🟢 ATIVO</span>
                         <% } %>
                     </td>
                 </tr>
