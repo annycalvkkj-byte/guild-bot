@@ -1,30 +1,33 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
+    <meta charset="UTF-8">
     <title>Configurações da Guilda</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; padding: 40px; }
-        .card { background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 500px; margin: auto; }
-        select, input { width: 100%; padding: 10px; margin: 10px 0; background: #333; color: white; border: 1px solid #444; }
-        button { background: #5865F2; color: white; border: none; padding: 10px 20px; cursor: pointer; width: 100%; border-radius: 5px; }
-        .success { color: #00ff00; text-align: center; margin-bottom: 10px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; display: flex; justify-content: center; padding: 20px; }
+        .container { background: #1e1e1e; padding: 30px; border-radius: 12px; width: 100%; max-width: 600px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        h1 { color: #5865F2; text-align: center; }
+        label { display: block; margin-top: 15px; font-weight: bold; color: #bbb; }
+        select, input, textarea { width: 100%; padding: 12px; margin-top: 5px; background: #2f3136; border: 1px solid #444; color: white; border-radius: 5px; }
+        button { width: 100%; padding: 15px; background: #5865F2; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 25px; font-size: 16px; font-weight: bold; }
+        button:hover { background: #4752c4; }
+        .back-link { display: block; text-align: center; margin-top: 15px; color: #aaa; text-decoration: none; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2>Configurar Cargos e Canais</h2>
-        <p>Selecione os cargos para automação:</p>
-        
+    <div class="container">
+        <h1>Painel de Controle</h1>
         <form action="/settings/save" method="POST">
-            <label>Remover este cargo ao verificar (ex: Novato):</label>
+            
+            <label>Cargo de Novato (Remover ao verificar):</label>
             <select name="roleNovato">
-                <option value="none">-- Nenhum --</option>
+                <option value="none">-- Nenhum / Não remover nada --</option>
                 <% roles.forEach(role => { %>
                     <option value="<%= role.id %>" <%= config.roleNovato == role.id ? 'selected' : '' %>><%= role.name %></option>
                 <% }) %>
             </select>
 
-            <label>Dar este cargo 1 (ex: Membro):</label>
+            <label>Cargo 1 para entregar (Ex: Membro):</label>
             <select name="roleVerificado1">
                 <option value="none">-- Nenhum --</option>
                 <% roles.forEach(role => { %>
@@ -32,7 +35,7 @@
                 <% }) %>
             </select>
 
-            <label>Dar este cargo 2 (ex: Verificado):</label>
+            <label>Cargo 2 para entregar (Ex: Verificado):</label>
             <select name="roleVerificado2">
                 <option value="none">-- Nenhum --</option>
                 <% roles.forEach(role => { %>
@@ -40,18 +43,20 @@
                 <% }) %>
             </select>
 
-            <label>Canal para Aviso de Guerra:</label>
+            <label>Canal de Avisos (Guerra de Guilda):</label>
             <select name="canalAviso">
-                <option value="none">-- Nenhum --</option>
+                <option value="none">-- Nenhum / Não avisar --</option>
                 <% channels.forEach(ch => { %>
                     <option value="<%= ch.id %>" <%= config.canalAviso == ch.id ? 'selected' : '' %>><%= ch.name %></option>
                 <% }) %>
             </select>
 
-            <button type="submit">Salvar Configurações</button>
+            <label>Mensagem da Guerra:</label>
+            <textarea name="msgGuerra" rows="2"><%= config.msgGuerra || '@everyone A Guerra começou!' %></textarea>
+
+            <button type="submit">SALVAR CONFIGURAÇÕES</button>
         </form>
-        <br>
-        <a href="/dashboard" style="color: #aaa; text-decoration: none;">← Voltar para Lista de Membros</a>
+        <a href="/dashboard" class="back-link">Ver Lista de Membros</a>
     </div>
 </body>
 </html>
