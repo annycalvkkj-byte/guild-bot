@@ -1,0 +1,16 @@
+{
+  "name": "ff-guild-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "discord.js": "^14.13.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "node-cron": "^3.0.2",
+    "ejs": "^3.1.9",
+    "express-session": "^1.17.3",
+    "passport": "^0.6.0",
+    "passport-discord": "^0.1.4"
+  }
+}
