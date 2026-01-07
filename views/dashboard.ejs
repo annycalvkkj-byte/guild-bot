@@ -3,33 +3,50 @@
 <head>
     <title>Dashboard Guilda</title>
     <style>
-        body { font-family: sans-serif; background: #1a1a1a; color: white; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #444; padding: 10px; text-align: left; }
-        th { background: #333; }
-        .active { color: #00ff00; }
-        .inactive { color: #ff4444; }
+        body { background: #121212; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; }
+        nav { background: #1e1e1e; padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #5865F2; }
+        .btn-settings { background: #5865F2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        .container { padding: 40px; }
+        table { width: 100%; border-collapse: collapse; background: #1e1e1e; border-radius: 10px; overflow: hidden; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #333; }
+        th { background: #2f3136; color: #5865F2; }
+        .status { padding: 5px 10px; border-radius: 4px; font-size: 12px; }
+        .ativo { background: #43b581; }
+        .inativo { background: #f04747; }
     </style>
 </head>
 <body>
-    <h1>Membros da Guilda</h1>
-    <table>
-        <tr>
-            <th>Discord</th>
-            <th>Nick FF</th>
-            <th>ID FF</th>
-            <th>Última Atividade</th>
-        </tr>
-        <% users.forEach(u => { %>
-        <tr>
-            <td><%= u.username %></td>
-            <td><%= u.ffNick %></td>
-            <td><%= u.ffId %></td>
-            <td class="<%= (Date.now() - u.lastMessage > 604800000) ? 'inactive' : 'active' %>">
-                <%= u.lastMessage.toLocaleDateString() %>
-            </td>
-        </tr>
-        <% }) %>
-    </table>
+    <nav>
+        <span>🛡️ PAINEL DA GUILDA</span>
+        <a href="/settings" class="btn-settings">⚙️ CONFIGURAÇÕES DO BOT</a>
+    </nav>
+
+    <div class="container">
+        <h1>Membros Registrados</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nick FF</th>
+                    <th>ID Free Fire</th>
+                    <th>Status de Atividade</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% users.forEach(u => { %>
+                <tr>
+                    <td><%= u.ffNick %></td>
+                    <td><%= u.ffId %></td>
+                    <td>
+                        <% if (Date.now() - u.lastMessage > 604800000) { %>
+                            <span class="status inativo">INATIVO (7 DIAS+)</span>
+                        <% } else { %>
+                            <span class="status ativo">ATIVO</span>
+                        <% } %>
+                    </td>
+                </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
 </body>
 </html>
