@@ -4,57 +4,57 @@
     <meta charset="UTF-8">
     <title>Configurações</title>
     <style>
-        :root { --discord-bg: #2c2f33; --discord-card: #23272a; --discord-blue: #5865F2; --text: #ffffff; }
-        body { background: var(--discord-bg); color: var(--text); font-family: sans-serif; }
-        .container { max-width: 600px; margin: 50px auto; background: var(--discord-card); padding: 30px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h1 { border-bottom: 2px solid var(--discord-blue); padding-bottom: 10px; }
-        label { display: block; margin-top: 20px; color: #aaa; font-size: 14px; }
-        select, input { width: 100%; padding: 12px; margin-top: 5px; background: #1a1c1e; border: 1px solid #444; color: white; border-radius: 5px; }
-        button { width: 100%; padding: 15px; margin-top: 30px; background: #43b581; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 16px; }
-        button:hover { background: #3ca374; }
-        .back { display: block; text-align: center; margin-top: 20px; color: #5865F2; text-decoration: none; }
+        body { background: #2c2f33; color: white; font-family: sans-serif; padding: 20px; }
+        .card { background: #23272a; padding: 25px; border-radius: 10px; max-width: 600px; margin: auto; }
+        select, input { width: 100%; padding: 10px; margin: 10px 0; background: #1a1c1e; border: 1px solid #444; color: white; }
+        .btn-save { background: #43b581; color: white; border: none; padding: 15px; width: 100%; cursor: pointer; font-weight: bold; }
+        .btn-setup { background: #5865F2; color: white; border: none; padding: 15px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 20px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Configurações do Bot</h1>
+    <div class="card">
+        <h1>Configurações da Guilda</h1>
         <form action="/save" method="POST">
-            <label>Cargo de Novato (Para remover):</label>
+            <label>Cargo de Novato (Remover):</label>
             <select name="roleNovato">
                 <option value="">Nenhum</option>
-                <% roles.forEach(r => { %>
-                    <option value="<%= r.id %>" <%= config.roleNovato == r.id ? 'selected' : '' %>><%= r.name %></option>
-                <% }) %>
+                <% roles.forEach(r => { %><option value="<%= r.id %>" <%= config.roleNovato == r.id ? 'selected' : '' %>><%= r.name %></option><% }) %>
             </select>
 
-            <label>Cargos para Entregar (Ao verificar):</label>
+            <label>Cargos para Dar (1 e 2):</label>
             <select name="roleVerificado1">
                 <option value="">Nenhum</option>
-                <% roles.forEach(r => { %>
-                    <option value="<%= r.id %>" <%= config.roleVerificado1 == r.id ? 'selected' : '' %>><%= r.name %></option>
-                <% }) %>
+                <% roles.forEach(r => { %><option value="<%= r.id %>" <%= config.roleVerificado1 == r.id ? 'selected' : '' %>><%= r.name %></option><% }) %>
             </select>
-            <select name="roleVerificado2" style="margin-top:10px">
+            <select name="roleVerificado2">
                 <option value="">Nenhum</option>
-                <% roles.forEach(r => { %>
-                    <option value="<%= r.id %>" <%= config.roleVerificado2 == r.id ? 'selected' : '' %>><%= r.name %></option>
-                <% }) %>
+                <% roles.forEach(r => { %><option value="<%= r.id %>" <%= config.roleVerificado2 == r.id ? 'selected' : '' %>><%= r.name %></option><% }) %>
             </select>
 
-            <label>Canal de Aviso da Guerra (Sábado 16h):</label>
+            <label>Canal onde a Verificação será enviada:</label>
+            <select name="canalVerificacao">
+                <option value="">Selecione o canal...</option>
+                <% channels.forEach(c => { %><option value="<%= c.id %>" <%= config.canalVerificacao == c.id ? 'selected' : '' %>><%= c.name %></option><% }) %>
+            </select>
+
+            <label>Canal de Aviso Guerra (Sábado):</label>
             <select name="canalAviso">
                 <option value="">Nenhum</option>
-                <% channels.forEach(c => { %>
-                    <option value="<%= c.id %>" <%= config.canalAviso == c.id ? 'selected' : '' %>><%= c.name %></option>
-                <% }) %>
+                <% channels.forEach(c => { %><option value="<%= c.id %>" <%= config.canalAviso == c.id ? 'selected' : '' %>><%= c.name %></option><% }) %>
             </select>
 
-            <label>Mensagem de Aviso:</label>
-            <input type="text" name="msgGuerra" value="<%= config.msgGuerra || '@everyone Guerra de Guilda Iniciada!' %>">
-
-            <button type="submit">SALVAR ALTERAÇÕES</button>
+            <button type="submit" class="btn-save">SALVAR TODAS AS OPÇÕES</button>
         </form>
-        <a href="/dashboard" class="back">← Voltar para a Dashboard</a>
+
+        <hr style="margin: 30px 0; border: 1px solid #444;">
+        
+        <h3>Enviar Mensagem de Registro</h3>
+        <p style="font-size: 12px; color: #aaa;">Escolha o "Canal de Verificação" acima, salve, e depois clique no botão abaixo:</p>
+        <form action="/send-setup" method="POST">
+            <button type="submit" class="btn-setup">ENVIAR BOTÃO DE REGISTRO PARA O DISCORD</button>
+        </form>
+        <br>
+        <center><a href="/dashboard" style="color:#aaa">Voltar para Membros</a></center>
     </div>
 </body>
 </html>
