@@ -1,71 +1,60 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
-    <title>Configurações do Bot</title>
+    <meta charset="UTF-8">
+    <title>Configurações</title>
     <style>
-        body { background: #121212; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; }
-        nav { background: #1e1e1e; padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #5865F2; }
-        .container { padding: 40px; max-width: 600px; margin: auto; }
-        .card { background: #1e1e1e; padding: 30px; border-radius: 10px; }
-        select, input { width: 100%; padding: 12px; margin: 10px 0; background: #2f3136; color: white; border: 1px solid #444; border-radius: 5px; }
-        button { background: #43b581; color: white; width: 100%; padding: 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 20px; }
-        .btn-back { color: #aaa; text-decoration: none; font-size: 14px; }
-        .success-msg { background: #43b581; color: white; padding: 10px; border-radius: 5px; margin-bottom: 20px; text-align: center; }
+        :root { --discord-bg: #2c2f33; --discord-card: #23272a; --discord-blue: #5865F2; --text: #ffffff; }
+        body { background: var(--discord-bg); color: var(--text); font-family: sans-serif; }
+        .container { max-width: 600px; margin: 50px auto; background: var(--discord-card); padding: 30px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h1 { border-bottom: 2px solid var(--discord-blue); padding-bottom: 10px; }
+        label { display: block; margin-top: 20px; color: #aaa; font-size: 14px; }
+        select, input { width: 100%; padding: 12px; margin-top: 5px; background: #1a1c1e; border: 1px solid #444; color: white; border-radius: 5px; }
+        button { width: 100%; padding: 15px; margin-top: 30px; background: #43b581; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        button:hover { background: #3ca374; }
+        .back { display: block; text-align: center; margin-top: 20px; color: #5865F2; text-decoration: none; }
     </style>
 </head>
 <body>
-    <nav>
-        <span>⚙️ CONFIGURAÇÕES</span>
-        <a href="/dashboard" style="color: white; text-decoration: none;">📊 VER MEMBROS</a>
-    </nav>
-
     <div class="container">
-        <div class="card">
-            <% if (typeof success !== 'undefined' || false) { %>
-                <div class="success-msg">✅ Configurações salvas com sucesso!</div>
-            <% } %>
+        <h1>Configurações do Bot</h1>
+        <form action="/save" method="POST">
+            <label>Cargo de Novato (Para remover):</label>
+            <select name="roleNovato">
+                <option value="">Nenhum</option>
+                <% roles.forEach(r => { %>
+                    <option value="<%= r.id %>" <%= config.roleNovato == r.id ? 'selected' : '' %>><%= r.name %></option>
+                <% }) %>
+            </select>
 
-            <form action="/save" method="POST">
-                <label>Remover cargo ao verificar (ex: Novato):</label>
-                <select name="roleNovato">
-                    <option value="">-- Nenhum --</option>
-                    <% roles.forEach(r => { %>
-                        <option value="<%= r.id %>" <%= config.roleNovato == r.id ? 'selected' : '' %>><%= r.name %></option>
-                    <% }) %>
-                </select>
+            <label>Cargos para Entregar (Ao verificar):</label>
+            <select name="roleVerificado1">
+                <option value="">Nenhum</option>
+                <% roles.forEach(r => { %>
+                    <option value="<%= r.id %>" <%= config.roleVerificado1 == r.id ? 'selected' : '' %>><%= r.name %></option>
+                <% }) %>
+            </select>
+            <select name="roleVerificado2" style="margin-top:10px">
+                <option value="">Nenhum</option>
+                <% roles.forEach(r => { %>
+                    <option value="<%= r.id %>" <%= config.roleVerificado2 == r.id ? 'selected' : '' %>><%= r.name %></option>
+                <% }) %>
+            </select>
 
-                <label>Dar este cargo 1:</label>
-                <select name="roleVerificado1">
-                    <option value="">-- Nenhum --</option>
-                    <% roles.forEach(r => { %>
-                        <option value="<%= r.id %>" <%= config.roleVerificado1 == r.id ? 'selected' : '' %>><%= r.name %></option>
-                    <% }) %>
-                </select>
+            <label>Canal de Aviso da Guerra (Sábado 16h):</label>
+            <select name="canalAviso">
+                <option value="">Nenhum</option>
+                <% channels.forEach(c => { %>
+                    <option value="<%= c.id %>" <%= config.canalAviso == c.id ? 'selected' : '' %>><%= c.name %></option>
+                <% }) %>
+            </select>
 
-                <label>Dar este cargo 2:</label>
-                <select name="roleVerificado2">
-                    <option value="">-- Nenhum --</option>
-                    <% roles.forEach(r => { %>
-                        <option value="<%= r.id %>" <%= config.roleVerificado2 == r.id ? 'selected' : '' %>><%= r.name %></option>
-                    <% }) %>
-                </select>
+            <label>Mensagem de Aviso:</label>
+            <input type="text" name="msgGuerra" value="<%= config.msgGuerra || '@everyone Guerra de Guilda Iniciada!' %>">
 
-                <label>Canal para o aviso de Sábado:</label>
-                <select name="canalAviso">
-                    <option value="">-- Nenhum --</option>
-                    <% channels.forEach(c => { %>
-                        <option value="<%= c.id %>" <%= config.canalAviso == c.id ? 'selected' : '' %>><%= c.name %></option>
-                    <% }) %>
-                </select>
-
-                <label>Mensagem da Guerra:</label>
-                <input type="text" name="msgGuerra" value="<%= config.msgGuerra || '@everyone Guerra de Guilda!' %>">
-
-                <button type="submit">SALVAR CONFIGURAÇÕES</button>
-            </form>
-            <br>
-            <center><a href="/dashboard" class="btn-back">Cancelar e Voltar</a></center>
-        </div>
+            <button type="submit">SALVAR ALTERAÇÕES</button>
+        </form>
+        <a href="/dashboard" class="back">← Voltar para a Dashboard</a>
     </div>
 </body>
 </html>
