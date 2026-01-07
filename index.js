@@ -2,7 +2,7 @@ require('dotenv').config();
 const { 
     Client, GatewayIntentBits, ModalBuilder, TextInputBuilder, 
     TextInputStyle, ActionRowBuilder, PermissionsBitField, EmbedBuilder,
-    ButtonBuilder, ButtonStyle 
+    ButtonBuilder, ButtonStyle, Presence 
 } = require('discord.js');
 const express = require('express');
 const mongoose = require('mongoose');
@@ -12,155 +12,131 @@ const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
 const path = require('path');
 
-// --- INICIALIZAÇÃO DO BOT ---
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildPresences // NECESSÁRIO PARA TEMPO REAL
     ]
 });
 
-// --- CONEXÃO BANCO DE DADOS ---
 mongoose.connect(process.env.MONGO_URI).then(() => console.log("✅ MongoDB Conectado"));
 
-// --- MODELOS DE DADOS ---
+// --- MODELOS DE DADOS ATUALIZADOS ---
 const User = mongoose.model('User', new mongoose.Schema({
-    discordId: String, username: String, ffNick: String, ffId: String, lastMessage: { type: Date, default: Date.now }
+    discordId: String, 
+    username: String, 
+    ffNick: String, 
+    ffId: String, 
+    lastMessage: { type: Date, default: Date.now },
+    lastSeen: { type: Date, default: Date.now }, // Para o "Online há..."
+    warnings: [{ reason: String, date: { type: Date, default: Date.now } }] // Punições
 }));
 
 const GuildConfig = mongoose.model('GuildConfig', new mongoose.Schema({
-    guildId: String,
-    roleNovato: String,
-    roleVerificado1: String,
-    roleVerificado2: String,
-    canalAviso: String,
-    canalVerificacao: String,
-    msgGuerra: { type: String, default: "@everyone ⚔️ A GUERRA DE GUILDA COMEÇOU!" }
+    guildId: String, roleNovato: String, roleVerificado1: String, roleVerificado2: String,
+    canalAviso: String, canalVerificacao: String, msgGuerra: String
 }));
 
 // --- LÓGICA DO BOT ---
 
+// Monitorar quando o usuário fica online/offline
+client.on('presenceUpdate', async (oldP, newP) => {
+    if (!newP.userId) return;
+    await User.findOneAndUpdate({ discordId: newP.userId }, { lastSeen: new Date() }, { upsert: true });
+});
+
 client.on('messageCreate', async (msg) => {
     if (msg.author.bot) return;
-    await User.findOneAndUpdate(
-        { discordId: msg.author.id }, 
-        { lastMessage: new Date(), username: msg.author.username }, 
-        { upsert: true }
-    );
+    await User.findOneAndUpdate({ discordId: msg.author.id }, { lastMessage: new Date(), lastSeen: new Date(), username: msg.author.username }, { upsert: true });
 });
 
 client.on('interactionCreate', async (interaction) => {
-    // Modal de Verificação
     if (interaction.isButton() && interaction.customId === 'btn_verificar') {
         const modal = new ModalBuilder().setCustomId('modal_ff').setTitle('Dados do Free Fire');
-        
-        const nickInput = new TextInputBuilder()
-            .setCustomId('nick').setLabel("Nick no FF").setStyle(TextInputStyle.Short).setRequired(true);
-        const idInput = new TextInputBuilder()
-            .setCustomId('ffid').setLabel("Seu ID (UID)").setStyle(TextInputStyle.Short).setRequired(true);
-        
         modal.addComponents(
-            new ActionRowBuilder().addComponents(nickInput),
-            new ActionRowBuilder().addComponents(idInput)
+            new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('nick').setLabel("Nick no FF").setStyle(1).setRequired(true)),
+            new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('ffid').setLabel("Seu ID (UID)").setStyle(1).setRequired(true))
         );
         await interaction.showModal(modal);
     }
 
-    // Processar Formulário
     if (interaction.isModalSubmit() && interaction.customId === 'modal_ff') {
         const nick = interaction.fields.getTextInputValue('nick');
         const ffid = interaction.fields.getTextInputValue('ffid');
         const config = await GuildConfig.findOne({ guildId: interaction.guild.id });
-
         try {
             await interaction.member.setNickname(nick).catch(() => {});
-
             if (config) {
                 if (config.roleNovato) await interaction.member.roles.remove(config.roleNovato).catch(() => {});
                 if (config.roleVerificado1) await interaction.member.roles.add(config.roleVerificado1).catch(() => {});
                 if (config.roleVerificado2) await interaction.member.roles.add(config.roleVerificado2).catch(() => {});
             }
-
             const roleName = `UID: ${ffid}`;
-            let roleUID = interaction.guild.roles.cache.find(r => r.name === roleName);
-            if (!roleUID) {
-                roleUID = await interaction.guild.roles.create({ name: roleName, reason: 'Verificação FF' });
-            }
-            await interaction.member.roles.add(roleUID);
-
-            await User.findOneAndUpdate(
-                { discordId: interaction.user.id },
-                { ffNick: nick, ffId: ffid, username: interaction.user.username },
-                { upsert: true }
-            );
-
-            await interaction.reply({ content: "✅ Registro concluído!", ephemeral: true });
-        } catch (error) {
-            await interaction.reply({ content: "❌ Erro de permissão. O cargo do bot deve estar no topo da lista.", ephemeral: true });
-        }
+            let r = interaction.guild.roles.cache.find(x => x.name === roleName);
+            if (!r) r = await interaction.guild.roles.create({ name: roleName });
+            await interaction.member.roles.add(r);
+            await User.findOneAndUpdate({ discordId: interaction.user.id }, { ffNick: nick, ffId: ffid, username: interaction.user.username }, { upsert: true });
+            await interaction.reply({ content: "✅ Registrado!", ephemeral: true });
+        } catch (e) { await interaction.reply({ content: "Erro de permissão!", ephemeral: true }); }
     }
 });
 
-// AVISO DE GUERRA SÁBADO 16H
-cron.schedule('0 16 * * 6', async () => {
-    const config = await GuildConfig.findOne({ guildId: process.env.GUILD_ID });
-    if (config && config.canalAviso) {
-        const channel = client.channels.cache.get(config.canalAviso);
-        if (channel) channel.send(config.msgGuerra || "@everyone ⚔️ Guerra Iniciada!");
-    }
-}, { timezone: "America/Sao_Paulo" });
-
-// --- SERVIDOR WEB ---
+// SERVIDOR WEB
 const app = express();
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
-
-app.use(session({
-    secret: 'guild_ff_key',
-    resave: false,
-    saveUninitialized: false
-}));
-
-app.use(passport.initialize());
-app.use(passport.session());
+app.use(session({ secret: 'guild_ff_key', resave: false, saveUninitialized: false }));
+app.use(passport.initialize()); app.use(passport.session());
 
 passport.use(new DiscordStrategy({
-    clientID: process.env.CLIENT_ID,
-    clientSecret: process.env.CLIENT_SECRET,
-    callbackURL: process.env.REDIRECT_URI,
-    scope: ['identify']
-}, (accessToken, refreshToken, profile, done) => {
-    return done(null, profile);
-}));
+    clientID: process.env.CLIENT_ID, clientSecret: process.env.CLIENT_SECRET,
+    callbackURL: process.env.REDIRECT_URI, scope: ['identify']
+}, (a, b, p, d) => d(null, p)));
+passport.serializeUser((u, d) => d(null, u)); passport.deserializeUser((o, d) => d(null, o));
 
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((obj, done) => done(null, obj));
-
-// ROTAS
-app.get('/', (req, res) => res.render('login'));
-
-app.get('/auth/discord', passport.authenticate('discord'));
-app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => res.redirect('/dashboard'));
-
+// ROTA DASHBOARD (LISTA EM TEMPO REAL)
 app.get('/dashboard', async (req, res) => {
     if (!req.isAuthenticated()) return res.redirect('/');
     const guild = client.guilds.cache.get(process.env.GUILD_ID);
-    if (!guild) return res.send("Bot fora do servidor.");
-
     const dbUsers = await User.find();
+    
     const members = await Promise.all(dbUsers.map(async (u) => {
-        const discordMember = await guild.members.fetch(u.discordId).catch(() => null);
+        const m = guild.members.cache.get(u.discordId);
         return {
-            name: discordMember ? discordMember.user.tag : u.username,
-            avatar: discordMember ? discordMember.user.displayAvatarURL() : 'https://cdn.discordapp.com/embed/avatars/0.png',
-            ffNick: u.ffNick, ffId: u.ffId, lastMessage: u.lastMessage
+            id: u._id,
+            discordId: u.discordId,
+            name: m ? m.user.tag : u.username + " (SAIU)",
+            avatar: m ? m.user.displayAvatarURL() : 'https://cdn.discordapp.com/embed/avatars/0.png',
+            ffNick: u.ffNick,
+            ffId: u.ffId,
+            status: m ? (m.presence?.status || 'offline') : 'left',
+            lastSeen: u.lastSeen,
+            warns: u.warnings.length,
+            nickMismatch: m && m.displayName !== u.ffNick // Checagem de Nick
         };
     }));
-
     res.render('dashboard', { members });
+});
+
+// ROTA PARA APLICAR ADVERTÊNCIA
+app.post('/warn/:id', async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send();
+    const { reason } = req.body;
+    await User.findByIdAndUpdate(req.params.id, { 
+        $push: { warnings: { reason: reason || "Sem motivo", date: new Date() } } 
+    });
+    res.redirect('/dashboard');
+});
+
+// ROTA PARA LIMPAR ADVERTÊNCIAS
+app.post('/clear-warns/:id', async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send();
+    await User.findByIdAndUpdate(req.params.id, { $set: { warnings: [] } });
+    res.redirect('/dashboard');
 });
 
 app.get('/settings', async (req, res) => {
@@ -173,55 +149,19 @@ app.get('/settings', async (req, res) => {
 });
 
 app.post('/save', async (req, res) => {
-    await GuildConfig.findOneAndUpdate(
-        { guildId: process.env.GUILD_ID },
-        { 
-            roleNovato: req.body.roleNovato || null,
-            roleVerificado1: req.body.roleVerificado1 || null,
-            roleVerificado2: req.body.roleVerificado2 || null,
-            canalAviso: req.body.canalAviso || null,
-            canalVerificacao: req.body.canalVerificacao || null,
-            msgGuerra: req.body.msgGuerra
-        },
-        { upsert: true }
-    );
+    await GuildConfig.findOneAndUpdate({ guildId: process.env.GUILD_ID }, req.body, { upsert: true });
     res.redirect('/settings');
 });
 
-// ENVIO DO BOTÃO PELO SITE (CORRIGIDO)
 app.post('/send-setup', async (req, res) => {
-    try {
-        const config = await GuildConfig.findOne({ guildId: process.env.GUILD_ID });
-        if (!config || !config.canalVerificacao) {
-            return res.send("<script>alert('Escolha o canal primeiro e salve!'); window.history.back();</script>");
-        }
-        
-        const channel = await client.channels.fetch(config.canalVerificacao);
-        if (channel) {
-            // FIX: Usando ButtonBuilder para evitar erro no Render
-            const button = new ButtonBuilder()
-                .setCustomId('btn_verificar')
-                .setLabel('Verificar-se na Guilda')
-                .setStyle(ButtonStyle.Primary);
-
-            const row = new ActionRowBuilder().addComponents(button);
-
-            const embed = new EmbedBuilder()
-                .setTitle("🛡️ Registro de Membros")
-                .setDescription("Clique no botão abaixo para registrar seu ID e Nick.")
-                .setColor("#5865F2");
-
-            await channel.send({ embeds: [embed], components: [row] });
-            res.send("<script>alert('Mensagem enviada com sucesso!'); window.location.href='/settings';</script>");
-        } else {
-            res.send("Canal não encontrado.");
-        }
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Erro ao enviar mensagem: " + err.message);
+    const config = await GuildConfig.findOne({ guildId: process.env.GUILD_ID });
+    const channel = await client.channels.fetch(config.canalVerificacao);
+    if (channel) {
+        const btn = new ButtonBuilder().setCustomId('btn_verificar').setLabel('Verificar-se na Guilda').setStyle(ButtonStyle.Primary);
+        await channel.send({ embeds: [new EmbedBuilder().setTitle("🛡️ Registro").setColor("#5865F2")], components: [new ActionRowBuilder().addComponents(btn)] });
+        res.send("<script>alert('Enviado!'); window.location.href='/settings';</script>");
     }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Online na porta ${PORT}`));
+app.listen(process.env.PORT || 3000, () => console.log("🚀 Online"));
 client.login(process.env.TOKEN);
