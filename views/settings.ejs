@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Configurações da Guilda</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; padding: 40px; }
+        .card { background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 500px; margin: auto; }
+        select, input { width: 100%; padding: 10px; margin: 10px 0; background: #333; color: white; border: 1px solid #444; }
+        button { background: #5865F2; color: white; border: none; padding: 10px 20px; cursor: pointer; width: 100%; border-radius: 5px; }
+        .success { color: #00ff00; text-align: center; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Configurar Cargos e Canais</h2>
+        <p>Selecione os cargos para automação:</p>
+        
+        <form action="/settings/save" method="POST">
+            <label>Remover este cargo ao verificar (ex: Novato):</label>
+            <select name="roleNovato">
+                <option value="none">-- Nenhum --</option>
+                <% roles.forEach(role => { %>
+                    <option value="<%= role.id %>" <%= config.roleNovato == role.id ? 'selected' : '' %>><%= role.name %></option>
+                <% }) %>
+            </select>
+
+            <label>Dar este cargo 1 (ex: Membro):</label>
+            <select name="roleVerificado1">
+                <option value="none">-- Nenhum --</option>
+                <% roles.forEach(role => { %>
+                    <option value="<%= role.id %>" <%= config.roleVerificado1 == role.id ? 'selected' : '' %>><%= role.name %></option>
+                <% }) %>
+            </select>
+
+            <label>Dar este cargo 2 (ex: Verificado):</label>
+            <select name="roleVerificado2">
+                <option value="none">-- Nenhum --</option>
+                <% roles.forEach(role => { %>
+                    <option value="<%= role.id %>" <%= config.roleVerificado2 == role.id ? 'selected' : '' %>><%= role.name %></option>
+                <% }) %>
+            </select>
+
+            <label>Canal para Aviso de Guerra:</label>
+            <select name="canalAviso">
+                <option value="none">-- Nenhum --</option>
+                <% channels.forEach(ch => { %>
+                    <option value="<%= ch.id %>" <%= config.canalAviso == ch.id ? 'selected' : '' %>><%= ch.name %></option>
+                <% }) %>
+            </select>
+
+            <button type="submit">Salvar Configurações</button>
+        </form>
+        <br>
+        <a href="/dashboard" style="color: #aaa; text-decoration: none;">← Voltar para Lista de Membros</a>
+    </div>
+</body>
+</html>
