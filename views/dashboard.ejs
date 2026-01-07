@@ -1,46 +1,56 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
+    <meta charset="UTF-8">
     <title>Dashboard Guilda</title>
     <style>
-        body { background: #121212; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; }
-        nav { background: #1e1e1e; padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #5865F2; }
-        .btn-settings { background: #5865F2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        :root { --discord-bg: #2c2f33; --discord-card: #23272a; --discord-blue: #5865F2; --text: #ffffff; }
+        body { background: var(--discord-bg); color: var(--text); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 0; }
+        nav { background: var(--discord-card); padding: 15px 50px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .btn { background: var(--discord-blue); color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; transition: 0.3s; }
+        .btn:hover { background: #4752c4; }
         .container { padding: 40px; }
-        table { width: 100%; border-collapse: collapse; background: #1e1e1e; border-radius: 10px; overflow: hidden; }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #333; }
-        th { background: #2f3136; color: #5865F2; }
-        .status { padding: 5px 10px; border-radius: 4px; font-size: 12px; }
-        .ativo { background: #43b581; }
-        .inativo { background: #f04747; }
+        .member-list { width: 100%; border-collapse: collapse; background: var(--discord-card); border-radius: 10px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+        th { background: #1a1c1e; padding: 20px; text-align: left; color: var(--discord-blue); text-transform: uppercase; font-size: 12px; }
+        td { padding: 15px 20px; border-bottom: 1px solid #2f3136; }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-info img { width: 40px; height: 40px; border-radius: 50%; }
+        .badge { padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+        .badge-active { background: #43b581; }
+        .badge-inactive { background: #f04747; }
+        .ff-id { font-family: 'Courier New', monospace; color: #aaa; }
     </style>
 </head>
 <body>
     <nav>
-        <span>🛡️ PAINEL DA GUILDA</span>
-        <a href="/settings" class="btn-settings">⚙️ CONFIGURAÇÕES DO BOT</a>
+        <h2 style="margin:0">⚔️ PAINEL DA GUILDA</h2>
+        <a href="/settings" class="btn">⚙️ CONFIGURAÇÕES</a>
     </nav>
-
     <div class="container">
-        <h1>Membros Registrados</h1>
-        <table>
+        <h1>Membros da Guilda</h1>
+        <table class="member-list">
             <thead>
                 <tr>
-                    <th>Nick FF</th>
-                    <th>ID Free Fire</th>
-                    <th>Status de Atividade</th>
+                    <th>Membro Discord</th>
+                    <th>Nick Free Fire</th>
+                    <th>ID (UID)</th>
+                    <th>Atividade</th>
                 </tr>
             </thead>
             <tbody>
-                <% users.forEach(u => { %>
+                <% members.forEach(m => { %>
                 <tr>
-                    <td><%= u.ffNick %></td>
-                    <td><%= u.ffId %></td>
+                    <td class="user-info">
+                        <img src="<%= m.avatar %>">
+                        <span><%= m.name %></span>
+                    </td>
+                    <td><b style="color: #ffcc00;"><%= m.ffNick %></b></td>
+                    <td class="ff-id"><%= m.ffId %></td>
                     <td>
-                        <% if (Date.now() - u.lastMessage > 604800000) { %>
-                            <span class="status inativo">INATIVO (7 DIAS+)</span>
+                        <% if (Date.now() - m.lastMessage > 604800000) { %>
+                            <span class="badge badge-inactive">🔴 INATIVO</span>
                         <% } else { %>
-                            <span class="status ativo">ATIVO</span>
+                            <span class="badge badge-active">🟢 ATIVO</span>
                         <% } %>
                     </td>
                 </tr>
