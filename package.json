@@ -1,5 +1,6 @@
+
 {
-  "name": "ff-guild-bot",
+  "name": "bot-guilda-ff",
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
@@ -11,6 +12,7 @@
     "ejs": "^3.1.9",
     "express-session": "^1.17.3",
     "passport": "^0.6.0",
-    "passport-discord": "^0.1.4"
+    "passport-discord": "^0.1.4",
+    "googleapis": "^126.0.0"
   }
 }
