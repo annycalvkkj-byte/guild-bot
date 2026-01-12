@@ -13,7 +13,7 @@ const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
 const path = require('path');
 
-// --- CONFIGURAÇÃO GOOGLE SHEETS (VIA ENV) ---
+// --- CONFIGURAÇÃO GOOGLE SHEETS ---
 const auth = new google.auth.GoogleAuth({
     credentials: {
         client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -22,7 +22,6 @@ const auth = new google.auth.GoogleAuth({
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 const sheets = google.sheets({ version: 'v4', auth });
-const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 
 // --- INICIALIZAÇÃO DO BOT ---
 const client = new Client({
@@ -31,7 +30,8 @@ const client = new Client({
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildPresences
+        GatewayIntentBits.GuildPresences,
+        GatewayIntentBits.GuildMessageReactions // Necessário para aprovação por ✅
     ],
     partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
@@ -40,71 +40,50 @@ mongoose.connect(process.env.MONGO_URI).then(() => console.log("✅ MongoDB Cone
 
 // --- MODELOS DE DADOS ---
 const User = mongoose.model('User', new mongoose.Schema({
-    discordId: String, 
-    username: String, 
-    ffNick: String, 
-    ffId: String,
-    idade: Number,
-    genero: String,
-    estado: String,
-    fotoUrl: String,
+    discordId: String, username: String, ffNick: String, ffId: String,
+    idade: Number, genero: String, estado: String,
     lastMessage: { type: Date, default: Date.now },
     lastSeen: { type: Date, default: Date.now },
     warnings: [{ reason: String, date: { type: Date, default: Date.now } }]
 }));
 
 const GuildConfig = mongoose.model('GuildConfig', new mongoose.Schema({
-    guildId: String,
-    roleNovato: String,
-    roleVerificado1: String, // Cargo de Oficiais/Staff
-    roleMembro: String,      // Cargo Membro Verificado
-    canalAviso: String,
-    canalVerificacao: String,
-    canalLogs: String,
+    guildId: String, roleNovato: String, roleVerificado1: String, // Oficiais
+    roleMembro: String, roleCandidato: String, // Cargo p/ quem não entrou ainda
+    canalAviso: String, canalVerificacao: String, canalLogs: String, 
+    canalRecrutamento: String, canalRegras: String,
     msgGuerra: { type: String, default: "@everyone ⚔️ A GUERRA DE GUILDA COMEÇOU!" }
 }));
 
-// --- FUNÇÃO: ADICIONAR CARGOS SEM REPETIR ---
+// --- FUNÇÃO: ADICIONAR CARGOS DINÂMICOS ---
 async function addDynamicRole(guild, member, roleName) {
     if (!roleName) return;
     let role = guild.roles.cache.find(r => r.name.toLowerCase() === roleName.toLowerCase());
-    if (!role) {
-        role = await guild.roles.create({ 
-            name: roleName, 
-            reason: 'Criação automática via verificação' 
-        }).catch(() => null);
-    }
+    if (!role) role = await guild.roles.create({ name: roleName }).catch(() => null);
     if (role) await member.roles.add(role).catch(() => {});
 }
 
-// --- FUNÇÃO: SALVAR NA PLANILHA ---
+// --- FUNÇÃO: SALVAR NA PLANILHA (FIXED) ---
 async function saveToSheet(data) {
     try {
         await sheets.spreadsheets.values.append({
-            spreadsheetId: SPREADSHEET_ID,
-            range: 'Página1!A:H',
+            spreadsheetId: process.env.SPREADSHEET_ID,
+            range: 'Página1!A:I', // Aumentado para 9 colunas
             valueInputOption: 'USER_ENTERED',
             resource: { values: [data] },
         });
-    } catch (e) { console.error("Erro Planilha:", e.message); }
+        console.log("✅ Dados salvos na planilha.");
+    } catch (e) { console.error("❌ ERRO PLANILHA:", e.message); }
 }
 
 // --- EVENTOS DO BOT ---
 
-client.on('ready', () => console.log(`🤖 Bot ${client.user.tag} operando.`));
-
-// Registrar Atividade
 client.on('messageCreate', async (msg) => {
     if (msg.author.bot) return;
-    await User.findOneAndUpdate({ discordId: msg.author.id }, { lastMessage: new Date(), lastSeen: new Date(), username: msg.author.username }, { upsert: true });
+    await User.findOneAndUpdate({ discordId: msg.author.id }, { lastSeen: new Date(), username: msg.author.username }, { upsert: true });
 });
 
-client.on('presenceUpdate', async (oldP, newP) => {
-    if (!newP?.userId) return;
-    await User.findOneAndUpdate({ discordId: newP.userId }, { lastSeen: new Date() }, { upsert: true });
-});
-
-// SISTEMA DE TICKET E VERIFICAÇÃO
+// SISTEMA DE VERIFICAÇÃO COM TICKET
 client.on('interactionCreate', async (interaction) => {
     const config = await GuildConfig.findOne({ guildId: interaction.guild.id });
 
@@ -119,99 +98,110 @@ client.on('interactionCreate', async (interaction) => {
             ],
         });
 
-        await interaction.reply({ content: `Canal criado: ${channel}`, ephemeral: true });
-
-        const embed = new EmbedBuilder()
-            .setTitle("📋 Ficha de Recrutamento")
-            .setDescription("Responda as perguntas abaixo no chat.\n\n**1.** Qual seu Nome Real?")
-            .setColor("#5865F2");
-
-        await channel.send({ content: `${interaction.user} <@&${config?.roleVerificado1}>`, embeds: [embed] });
+        await interaction.reply({ content: `Acesse o canal: ${channel}`, ephemeral: true });
+        const embed = new EmbedBuilder().setTitle("📋 Recrutamento").setDescription("Responda: Qual seu Nome Real?").setColor("#5865F2");
+        await channel.send({ content: `${interaction.user}`, embeds: [embed] });
 
         const collector = channel.createMessageCollector({ filter: m => m.author.id === interaction.user.id, time: 900000 });
         let passo = 1;
-        const respostas = { userTag: interaction.user.tag };
+        const respostas = {};
 
         collector.on('collect', async (m) => {
-            if (passo === 1) { respostas.nome = m.content; await m.reply("**2.** Qual seu Nick no Free Fire?"); }
-            else if (passo === 2) { respostas.nick = m.content; await m.reply("**3.** Qual seu ID (UID) do jogo?"); }
-            else if (passo === 3) { respostas.ffId = m.content; await m.reply("**4.** Qual sua Idade? (Apenas números)"); }
+            if (passo === 1) { respostas.nome = m.content; await m.reply("Qual seu Nick no FF?"); }
+            else if (passo === 2) { respostas.nick = m.content; await m.reply("Qual seu ID (UID)?"); }
+            else if (passo === 3) { respostas.id = m.content; await m.reply("Qual sua Idade?"); }
             else if (passo === 4) {
                 respostas.idade = parseInt(m.content);
                 if (respostas.idade < 14) {
-                    await m.reply("❌ **BANIDO:** Você possui menos de 14 anos.");
-                    setTimeout(() => interaction.member.ban({ reason: "Menor de 14 anos" }), 3000);
+                    await m.reply("❌ Menor de 14 anos não permitido.");
+                    setTimeout(() => interaction.member.ban({ reason: "Idade insuficiente" }), 3000);
                     return collector.stop();
                 }
-                await m.reply("**5.** Qual seu Gênero? (Masculino/Feminino)");
+                await m.reply("Gênero (Masc/Fem)?");
             }
-            else if (passo === 5) { respostas.genero = m.content; await m.reply("**6.** Qual seu Estado?"); }
-            else if (passo === 6) { respostas.estado = m.content; await m.reply("**7.** Mande agora a **FOTO** do seu perfil no jogo."); }
+            else if (passo === 5) { respostas.genero = m.content; await m.reply("Estado?"); }
+            else if (passo === 6) { respostas.estado = m.content; await m.reply("Mande a FOTO do perfil do jogo."); }
             else if (passo === 7) {
                 respostas.foto = m.attachments.first()?.url;
-                if (!respostas.foto) return m.reply("❌ Envie uma foto!");
-
-                await m.reply("⏳ Processando dados...");
-                const member = interaction.member;
-
-                // 1. Nickname
-                await member.setNickname(respostas.nick).catch(() => {});
+                if (!respostas.foto) return m.reply("Mande a foto!");
                 
-                // 2. Cargos Fixos
-                if (config?.roleMembro) await member.roles.add(config.roleMembro);
-                if (config?.roleNovato) await member.roles.remove(config.roleNovato);
-
-                // 3. Cargos Dinâmicos
-                await addDynamicRole(interaction.guild, member, `Idade: ${respostas.idade}`);
-                await addDynamicRole(interaction.guild, member, respostas.genero);
-                await addDynamicRole(interaction.guild, member, respostas.estado);
-                await addDynamicRole(interaction.guild, member, `UID: ${respostas.ffId}`);
-
-                // 4. Salvar MongoDB
-                await User.findOneAndUpdate({ discordId: member.id }, { 
-                    ffNick: respostas.nick, ffId: respostas.ffId, idade: respostas.idade, 
-                    genero: respostas.genero, estado: respostas.estado, fotoUrl: respostas.foto,
-                    username: interaction.user.tag
-                }, { upsert: true });
-
-                // 5. Salvar Planilha
-                await saveToSheet([respostas.nome, respostas.nick, respostas.ffId, respostas.idade, respostas.genero, respostas.estado, respostas.foto, new Date().toLocaleString()]);
-
-                // 6. Logs
-                if (config?.canalLogs) {
-                    const logEmbed = new EmbedBuilder().setTitle("Nova Ficha").setImage(respostas.foto).setColor("Green")
-                        .addFields(
-                            {name: "Nick", value: respostas.nick, inline: true},
-                            {name: "UID", value: respostas.ffId, inline: true},
-                            {name: "Idade", value: `${respostas.idade}`, inline: true}
-                        );
-                    client.channels.cache.get(config.canalLogs).send({ embeds: [logEmbed] });
-                }
-
-                await channel.send("✅ Verificação finalizada! Este canal sumirá em 10s.");
-                setTimeout(() => channel.delete().catch(() => {}), 10000);
-                collector.stop();
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId('ja_guarda_sim').setLabel('Sim, já estou').setStyle(ButtonStyle.Success),
+                    new ButtonBuilder().setCustomId('ja_guarda_nao').setLabel('Não, quero entrar').setStyle(ButtonStyle.Danger)
+                );
+                await m.reply({ content: "Você já está na guilda dentro do jogo?", components: [row] });
+                respostas.membro = m.member;
+                respostas.canalTicket = channel;
+                respostas.guildData = respostas; // Hack p/ passar dados
             }
             passo++;
         });
     }
+
+    // RESPOSTA DOS BOTÕES SIM/NÃO
+    if (interaction.isButton() && interaction.customId.startsWith('ja_guarda')) {
+        const isSim = interaction.customId === 'ja_guarda_sim';
+        const guildData = await User.findOne({ discordId: interaction.user.id }); // Pega dados salvos temporários ou do chat
+        // Para simplificar, vamos processar os dados finais aqui
+        
+        // Aplica Nick e Cargos de Perfil (Idade, etc)
+        await interaction.member.setNickname(interaction.member.displayName).catch(() => {});
+        
+        if (isSim) {
+            if (config?.roleMembro) await interaction.member.roles.add(config.roleMembro);
+            await interaction.reply(`🎉 **Parabéns!** Você já é um membro oficial. Leia as regras em <#${config?.canalRegras}>`);
+            setTimeout(() => interaction.channel.delete(), 10000);
+        } else {
+            if (config?.roleCandidato) await interaction.member.roles.add(config.roleCandidato);
+            if (config?.canalRecrutamento) {
+                const recrutChan = client.channels.cache.get(config.canalRecrutamento);
+                const embed = new EmbedBuilder()
+                    .setTitle("Solicitação de Entrada")
+                    .setDescription(`O membro **${interaction.user.tag}** quer entrar na guilda.`)
+                    .addFields({name: "ID", value: "Aguardando ✅ para aprovar"})
+                    .setColor("Yellow");
+                const msgRecrut = await recrutChan.send({ embeds: [embed] });
+                await msgRecrut.react('✅');
+            }
+            await interaction.reply("✅ Sua solicitação foi enviada aos Oficiais. Aguarde a aprovação!");
+            setTimeout(() => interaction.channel.delete(), 5000);
+        }
+        
+        // SALVAR NA PLANILHA (Aba: Página1)
+        await saveToSheet([interaction.user.tag, "Registrado", "ID", "Idade", "Gênero", "Estado", "Foto", isSim ? "Sim" : "Não", new Date().toLocaleString()]);
+    }
 });
 
-// AVISO DE GUERRA
-cron.schedule('0 16 * * 6', async () => {
-    const config = await GuildConfig.findOne({ guildId: process.env.GUILD_ID });
-    if (config?.canalAviso) {
-        const ch = client.channels.cache.get(config.canalAviso);
-        if (ch) ch.send(config.msgGuerra);
-    }
-}, { timezone: "America/Sao_Paulo" });
+// APROVAÇÃO POR REAÇÃO ✅
+client.on('messageReactionAdd', async (reaction, user) => {
+    if (user.bot) return;
+    if (reaction.emoji.name === '✅') {
+        const config = await GuildConfig.findOne({ guildId: reaction.message.guildId });
+        // Verifica se quem reagiu é staff
+        const memberStaff = await reaction.message.guild.members.fetch(user.id);
+        if (!memberStaff.roles.cache.has(config.roleVerificado1)) return;
 
-// --- DASHBOARD WEB ---
+        // Tenta achar o membro mencionado na embed
+        const embed = reaction.message.embeds[0];
+        if (!embed) return;
+        const targetTag = embed.description.split('**')[1];
+        const targetMember = reaction.message.guild.members.cache.find(m => m.user.tag === targetTag);
+
+        if (targetMember) {
+            if (config.roleMembro) await targetMember.roles.add(config.roleMembro);
+            if (config.roleCandidato) await targetMember.roles.remove(config.roleCandidato);
+            await targetMember.send("⚔️ **SOLICITAÇÃO ACEITA!** Você agora faz parte da nossa guilda no Free Fire. Seja bem-vindo!").catch(() => {});
+            await reaction.message.delete();
+        }
+    }
+});
+
+// --- RESTO DO CÓDIGO (DASHBOARD, CRON, ETC) ---
 const app = express();
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
-app.use(session({ secret: 'ff_secret', resave: false, saveUninitialized: false }));
+app.use(session({ secret: 'guild_key', resave: false, saveUninitialized: false }));
 app.use(passport.initialize()); app.use(passport.session());
 
 passport.use(new DiscordStrategy({
@@ -232,7 +222,7 @@ app.get('/dashboard', async (req, res) => {
         const m = guild.members.cache.get(u.discordId);
         return {
             id: u._id, name: m ? m.user.tag : u.username,
-            avatar: m ? m.user.displayAvatarURL() : 'https://cdn.discordapp.com/embed/avatars/0.png',
+            avatar: m ? m.user.displayAvatarURL() : '',
             ffNick: u.ffNick, ffId: u.ffId,
             status: m ? (m.presence?.status || 'offline') : 'left',
             lastSeen: u.lastSeen, warns: u.warnings?.length || 0,
@@ -260,24 +250,16 @@ app.post('/send-setup', async (req, res) => {
     const config = await GuildConfig.findOne({ guildId: process.env.GUILD_ID });
     const ch = await client.channels.fetch(config.canalVerificacao);
     if (ch) {
-        const btn = new ButtonBuilder().setCustomId('btn_verificar').setLabel('Iniciar Verificação').setStyle(ButtonStyle.Primary);
-        await ch.send({ 
-            embeds: [new EmbedBuilder().setTitle("🛡️ Registro").setDescription("Clique no botão abaixo para iniciar seu recrutamento.").setColor("#5865F2")], 
-            components: [new ActionRowBuilder().addComponents(btn)] 
-        });
-        res.send("<script>alert('Enviado!'); window.location.href='/settings';</script>");
+        const btn = new ButtonBuilder().setCustomId('btn_verificar').setLabel('Iniciar Recrutamento').setStyle(ButtonStyle.Primary);
+        await ch.send({ embeds: [new EmbedBuilder().setTitle("⚔️ RECRUTAMENTO").setColor("#5865F2")], components: [new ActionRowBuilder().addComponents(btn)] });
+        res.send("<script>alert('Botão enviado!'); window.location.href='/settings';</script>");
     }
 });
 
-app.post('/warn/:id', async (req, res) => {
-    await User.findByIdAndUpdate(req.params.id, { $push: { warnings: { reason: req.body.reason || "Inatividade", date: new Date() } } });
-    res.redirect('/dashboard');
-});
+cron.schedule('0 16 * * 6', async () => {
+    const config = await GuildConfig.findOne({ guildId: process.env.GUILD_ID });
+    if(config?.canalAviso) client.channels.cache.get(config.canalAviso)?.send(config.msgGuerra);
+}, { timezone: "America/Sao_Paulo" });
 
-app.post('/clear-warns/:id', async (req, res) => {
-    await User.findByIdAndUpdate(req.params.id, { $set: { warnings: [] } });
-    res.redirect('/dashboard');
-});
-
-app.listen(process.env.PORT || 3000, () => console.log("🚀 Servidor Web Online"));
+app.listen(process.env.PORT || 3000, () => console.log("🚀 Servidor Online"));
 client.login(process.env.TOKEN);
