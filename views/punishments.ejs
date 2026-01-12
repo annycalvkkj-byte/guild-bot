@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Punições - Guilda</title>
+    <style>
+        body { background: #2f3136; color: white; font-family: sans-serif; padding: 20px; }
+        .container { max-width: 900px; margin: auto; }
+        .card { background: #36393f; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        select, input, textarea { width: 100%; padding: 10px; margin: 10px 0; background: #202225; border: 1px solid #444; color: white; }
+        button { background: #ed4245; color: white; border: none; padding: 15px; width: 100%; cursor: pointer; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #202225; }
+        th, td { padding: 10px; border: 1px solid #333; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/dashboard" style="color: #aaa; text-decoration: none;">← Voltar ao Painel</a>
+        <h1>⚖️ Sistema de Punições</h1>
+        
+        <div class="card">
+            <form action="/punish" method="POST">
+                <label>Selecionar Membro:</label>
+                <select name="discordId" required>
+                    <% members.forEach(m => { %>
+                        <option value="<%= m.discordId %>"><%= m.ffNick %> (<%= m.username %>)</option>
+                    <% }) %>
+                </select>
+
+                <label>Tipo de Punição:</label>
+                <select name="type" required>
+                    <option value="adv">Advertência (Apenas Registro)</option>
+                    <option value="mute">Mute / Castigo (Timeout)</option>
+                    <option value="kick">Expulsar (Kick)</option>
+                    <option value="ban">Banir Permanentemente</option>
+                </select>
+
+                <label>Tempo (Apenas para Mute - em minutos):</label>
+                <input type="number" name="time" placeholder="Ex: 60">
+
+                <label>Motivo:</label>
+                <textarea name="reason" required placeholder="Escreva o motivo aqui..."></textarea>
+
+                <label>Link da Evidência (Print/Vídeo):</label>
+                <input type="text" name="evidence" placeholder="https://imgur.com/...">
+
+                <button type="submit">APLICAR PUNIÇÃO AGORA</button>
+            </form>
+        </div>
+
+        <h2>📜 Histórico (Últimas Punições)</h2>
+        <table>
+            <tr>
+                <th>Data</th><th>Membro</th><th>Ação</th><th>Motivo</th><th>Staff</th>
+            </tr>
+            <% history.slice(1).reverse().forEach(h => { %>
+                <tr>
+                    <td><%= h[7] %></td>
+                    <td><%= h[0] %></td>
+                    <td><%= h[2] %></td>
+                    <td><%= h[3] %></td>
+                    <td><%= h[6] %></td>
+                </tr>
+            <% }) %>
+        </table>
+    </div>
+</body>
+</html>
