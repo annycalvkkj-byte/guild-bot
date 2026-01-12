@@ -2,65 +2,273 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Configurações do Bot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações - Bot de Guilda</title>
     <style>
-        body { background: #2c2f33; color: white; font-family: sans-serif; padding: 20px; }
-        .card { background: #23272a; padding: 25px; border-radius: 10px; max-width: 700px; margin: auto; }
-        label { display: block; margin-top: 15px; color: #5865F2; font-weight: bold; }
-        select, input { width: 100%; padding: 10px; margin-top: 5px; background: #1a1c1e; border: 1px solid #444; color: white; border-radius: 5px; }
-        .btn-save { background: #43b581; color: white; border: none; padding: 15px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 20px; }
-        .btn-setup { background: #5865F2; color: white; border: none; padding: 15px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 20px; }
+        :root {
+            --bg: #2f3136;
+            --card: #36393f;
+            --blue: #5865f2;
+            --green: #3ba55c;
+            --red: #ed4245;
+            --text: #ffffff;
+            --muted: #b9bbbe;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        nav {
+            background: #202225;
+            padding: 15px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        nav h2 { margin: 0; color: var(--blue); font-size: 20px; }
+        
+        .btn-nav {
+            text-decoration: none;
+            color: white;
+            background: #4f545c;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+        .btn-nav:hover { background: #686d73; }
+
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: var(--card);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        h1 { border-bottom: 2px solid var(--blue); padding-bottom: 10px; margin-bottom: 30px; font-size: 24px; }
+
+        .section-title {
+            color: var(--blue);
+            text-transform: uppercase;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .form-group { margin-bottom: 20px; }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        select, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            background: #1a1c1e;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 5px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        select:focus, input:focus { border-color: var(--blue); }
+
+        .btn-save {
+            background: var(--green);
+            color: white;
+            border: none;
+            padding: 15px;
+            width: 100%;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: 0.3s;
+        }
+        .btn-save:hover { background: #2d7d46; }
+
+        .btn-setup {
+            background: var(--blue);
+            color: white;
+            border: none;
+            padding: 15px;
+            width: 100%;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+        .btn-setup:hover { background: #4752c4; }
+
+        .divider {
+            height: 1px;
+            background: #444;
+            margin: 40px 0;
+        }
+
+        .alert-info {
+            background: rgba(88, 101, 242, 0.1);
+            border-left: 4px solid var(--blue);
+            padding: 15px;
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 30px;
+        }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>⚙️ Configurações Gerais</h1>
-        <form action="/save" method="POST">
-            <label>Cargo de Oficiais/Líderes (Verão o Ticket de Verificação):</label>
-            <select name="roleVerificado1">
-                <option value="">-- Selecione --</option>
-                <% roles.forEach(r => { %>
-                    <option value="<%= r.id %>" <%= config.roleVerificado1 == r.id ? 'selected' : '' %>><%= r.name %></option>
-                <% }) %>
-            </select>
 
-            <label>Cargo de Membro (Entregue após aprovação):</label>
-            <select name="roleMembro">
-                <option value="">-- Selecione --</option>
-                <% roles.forEach(r => { %>
-                    <option value="<%= r.id %>" <%= config.roleMembro == r.id ? 'selected' : '' %>><%= r.name %></option>
-                <% }) %>
-            </select>
+    <nav>
+        <h2>⚔️ CONFIGURAÇÕES</h2>
+        <a href="/dashboard" class="btn-nav">📊 VOLTAR AO PAINEL</a>
+    </nav>
 
-            <label>Canal de Verificação (Onde o botão será enviado):</label>
-            <select name="canalVerificacao">
-                <option value="">-- Selecione --</option>
-                <% channels.forEach(c => { %>
-                    <option value="<%= c.id %>" <%= config.canalVerificacao == c.id ? 'selected' : '' %>><%= c.name %></option>
-                <% }) %>
-            </select>
+    <div class="container">
+        <div class="card">
+            <h1>⚙️ Painel de Controle</h1>
 
-            <label>Canal de Logs (Onde as fichas prontas serão enviadas):</label>
-            <select name="canalLogs">
-                <option value="">-- Selecione --</option>
-                <% channels.forEach(c => { %>
-                    <option value="<%= c.id %>" <%= config.canalLogs == c.id ? 'selected' : '' %>><%= c.name %></option>
-                <% }) %>
-            </select>
+            <div class="alert-info">
+                Configure os canais e cargos abaixo. Certifique-se de salvar as alterações antes de enviar o botão para o Discord.
+            </div>
 
-            <label>Mensagem da Guerra de Sábado:</label>
-            <input type="text" name="msgGuerra" value="<%= config.msgGuerra || '@everyone Guerra Iniciada!' %>">
+            <form action="/save" method="POST">
+                
+                <span class="section-title">Hierarquia e Cargos</span>
+                
+                <div class="form-group">
+                    <label>Cargo Staff/Oficiais (Verão os tickets e aprovarão membros):</label>
+                    <select name="roleVerificado1">
+                        <option value="">-- Selecione um Cargo --</option>
+                        <% roles.forEach(role => { %>
+                            <option value="<%= role.id %>" <%= config.roleVerificado1 == role.id ? 'selected' : '' %>><%= role.name %></option>
+                        <% }) %>
+                    </select>
+                </div>
 
-            <button type="submit" class="btn-save">SALVAR CONFIGURAÇÕES</button>
-        </form>
+                <div class="form-group">
+                    <label>Cargo Membro Oficial (Ganham após entrar na guilda):</label>
+                    <select name="roleMembro">
+                        <option value="">-- Selecione um Cargo --</option>
+                        <% roles.forEach(role => { %>
+                            <option value="<%= role.id %>" <%= config.roleMembro == role.id ? 'selected' : '' %>><%= role.name %></option>
+                        <% }) %>
+                    </select>
+                </div>
 
-        <hr style="margin-top: 30px; border: 0.5px solid #444">
-        <h3>Ações Rápidas</h3>
-        <form action="/send-setup" method="POST">
-            <button type="submit" class="btn-setup">ENVIAR BOTÃO DE REGISTRO AO DISCORD</button>
-        </form>
-        <br>
-        <center><a href="/dashboard" style="color:#aaa">Voltar para a Lista de Membros</a></center>
+                <div class="form-group">
+                    <label>Cargo de Candidato (Para quem ainda não entrou no jogo):</label>
+                    <select name="roleCandidato">
+                        <option value="">-- Selecione um Cargo --</option>
+                        <% roles.forEach(role => { %>
+                            <option value="<%= role.id %>" <%= config.roleCandidato == role.id ? 'selected' : '' %>><%= role.name %></option>
+                        <% }) %>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Cargo Inicial para Remover (Ex: Novato/Aguardando):</label>
+                    <select name="roleNovato">
+                        <option value="">-- Nenhum --</option>
+                        <% roles.forEach(role => { %>
+                            <option value="<%= role.id %>" <%= config.roleNovato == role.id ? 'selected' : '' %>><%= role.name %></option>
+                        <% }) %>
+                    </select>
+                </div>
+
+                <span class="section-title">Canais do Sistema</span>
+
+                <div class="form-group">
+                    <label>Canal de Verificação (Onde o Botão ficará):</label>
+                    <select name="canalVerificacao">
+                        <option value="">-- Selecione um Canal --</option>
+                        <% channels.forEach(ch => { %>
+                            <option value="<%= ch.id %>" <%= config.canalVerificacao == ch.id ? 'selected' : '' %>><%= ch.name %></option>
+                        <% }) %>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Canal de Recrutamento (Onde Oficiais aprovam com ✅):</label>
+                    <select name="canalRecrutamento">
+                        <option value="">-- Selecione um Canal --</option>
+                        <% channels.forEach(ch => { %>
+                            <option value="<%= ch.id %>" <%= config.canalRecrutamento == ch.id ? 'selected' : '' %>><%= ch.name %></option>
+                        <% }) %>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Canal de Regras (Mandado após o membro entrar):</label>
+                    <select name="canalRegras">
+                        <option value="">-- Selecione um Canal --</option>
+                        <% channels.forEach(ch => { %>
+                            <option value="<%= ch.id %>" <%= config.canalRegras == ch.id ? 'selected' : '' %>><%= ch.name %></option>
+                        <% }) %>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Canal de Logs (Fichas completas com Foto):</label>
+                    <select name="canalLogs">
+                        <option value="">-- Selecione um Canal --</option>
+                        <% channels.forEach(ch => { %>
+                            <option value="<%= ch.id %>" <%= config.canalLogs == ch.id ? 'selected' : '' %>><%= ch.name %></option>
+                        <% }) %>
+                    </select>
+                </div>
+
+                <span class="section-title">Guerra de Guilda (Sábado 16h)</span>
+
+                <div class="form-group">
+                    <label>Canal de Avisos:</label>
+                    <select name="canalAviso">
+                        <option value="">-- Selecione um Canal --</option>
+                        <% channels.forEach(ch => { %>
+                            <option value="<%= ch.id %>" <%= config.canalAviso == ch.id ? 'selected' : '' %>><%= ch.name %></option>
+                        <% }) %>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Mensagem Personalizada:</label>
+                    <input type="text" name="msgGuerra" value="<%= config.msgGuerra || '@everyone ⚔️ A GUERRA DE GUILDA COMEÇOU!' %>">
+                </div>
+
+                <button type="submit" class="btn-save">💾 SALVAR CONFIGURAÇÕES</button>
+            </form>
+
+            <div class="divider"></div>
+
+            <span class="section-title">Comandos de Gatilho</span>
+            <p style="font-size: 13px; color: var(--muted);">Use o botão abaixo para enviar a mensagem de recrutamento com o botão de início para o canal de verificação escolhido acima.</p>
+            
+            <form action="/send-setup" method="POST">
+                <button type="submit" class="btn-setup">🚀 ENVIAR BOTÃO DE RECRUTAMENTO</button>
+            </form>
+
+        </div>
     </div>
+
 </body>
 </html>
