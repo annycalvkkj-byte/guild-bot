@@ -1,38 +1,34 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Guilda</title>
+    <title>Gestão de Membros</title>
     <style>
-        :root { --bg: #2f3136; --card: #36393f; --blue: #5865f2; --red: #ed4245; --green: #3ba55c; }
-        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; }
+        body { background: #2f3136; color: white; font-family: sans-serif; margin: 0; }
         nav { background: #202225; padding: 15px 50px; display: flex; justify-content: space-between; align-items: center; }
         .container { padding: 30px; }
-        table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 8px; overflow: hidden; }
-        th, td { padding: 12px 20px; text-align: left; border-bottom: 1px solid #2f3136; }
+        table { width: 100%; border-collapse: collapse; background: #36393f; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #2f3136; }
         .user-cell { display: flex; align-items: center; gap: 10px; }
-        .user-cell img { width: 35px; border-radius: 50%; border: 2px solid transparent; }
-        .online { border-color: var(--green) !important; }
-        .status-text { font-size: 11px; color: #aaa; }
-        .warn-btn { background: var(--red); color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; }
-        .clear-btn { background: #747f8d; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; }
-        .nick-alert { color: var(--red); font-size: 11px; font-weight: bold; }
+        .user-cell img { width: 35px; border-radius: 50%; }
+        .status-on { color: #43b581; font-weight: bold; }
+        .status-off { color: #f04747; font-weight: bold; }
+        .warn-btn { background: #ed4245; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
     </style>
 </head>
 <body>
     <nav>
-        <h2>🛡️ GESTÃO DE GUILDA</h2>
+        <h2>🛡️ Gestão da Guilda</h2>
         <a href="/settings" style="color:white; text-decoration:none">⚙️ Configurações</a>
     </nav>
     <div class="container">
         <table>
             <thead>
                 <tr>
-                    <th>Membro</th>
-                    <th>Nick FF (Checagem)</th>
-                    <th>Status / Visto por último</th>
-                    <th>Advertências</th>
+                    <th>Membro Discord</th>
+                    <th>Nick FF</th>
+                    <th>Status</th>
+                    <th>Advs</th>
                     <th>Ações</th>
                 </tr>
             </thead>
@@ -40,35 +36,25 @@
                 <% members.forEach(m => { %>
                 <tr>
                     <td class="user-cell">
-                        <img src="<%= m.avatar %>" class="<%= m.status === 'online' ? 'online' : '' %>">
+                        <img src="<%= m.avatar %>">
                         <div>
                             <b><%= m.name %></b><br>
-                            <span class="status-text">ID: <%= m.ffId %></span>
+                            <% if(m.nickMismatch) { %><span style="color:#f04747; font-size:10px">⚠️ NICK DESATUALIZADO</span><% } %>
                         </div>
                     </td>
+                    <td style="color:#ffcc00"><%= m.ffNick %><br><small>UID: <%= m.ffId %></small></td>
                     <td>
-                        <span style="color: #ffcc00;"><%= m.ffNick %></span>
-                        <% if(m.nickMismatch) { %><br><span class="nick-alert">⚠️ NICK DIFERENTE NO DC</span><% } %>
-                    </td>
-                    <td>
-                        <% if(m.status === 'online') { %><b style="color:var(--green)">● Online agora</b>
-                        <% } else if(m.status === 'left') { %><b style="color:var(--red)">❌ Saiu do Servidor</b>
+                        <% if(m.status === 'online') { %>
+                            <span class="status-on">● Online agora</span>
                         <% } else { %>
-                            <span class="status-text">Visto há <%= Math.floor((Date.now() - m.lastSeen)/60000) %> mins</span>
+                            <span class="status-off">Visto há <%= Math.floor((Date.now() - m.lastSeen)/60000) %> min</span>
                         <% } %>
                     </td>
-                    <td>
-                        <span style="background:var(--red); padding:2px 8px; border-radius:10px; font-size:12px">
-                            <%= m.warns %> Advs
-                        </span>
-                    </td>
+                    <td><%= m.warns %></td>
                     <td>
                         <form action="/warn/<%= m.id %>" method="POST" style="display:inline">
-                            <input type="text" name="reason" placeholder="Motivo" style="width:60px; font-size:10px">
+                            <input type="text" name="reason" placeholder="Motivo" style="width:60px">
                             <button class="warn-btn">+ Adv</button>
-                        </form>
-                        <form action="/clear-warns/<%= m.id %>" method="POST" style="display:inline">
-                            <button class="clear-btn">Limpar</button>
                         </form>
                     </td>
                 </tr>
