@@ -2,66 +2,83 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Punições - Guilda</title>
+    <title>Punições - Guilda FF</title>
     <style>
-        body { background: #2f3136; color: white; font-family: sans-serif; padding: 20px; }
+        :root {
+            --bg: #2f3136; --card: #36393f; --blue: #5865f2; --red: #ed4245; --text: #ffffff;
+        }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; padding: 20px; }
         .container { max-width: 900px; margin: auto; }
-        .card { background: #36393f; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        select, input, textarea { width: 100%; padding: 10px; margin: 10px 0; background: #202225; border: 1px solid #444; color: white; }
-        button { background: #ed4245; color: white; border: none; padding: 15px; width: 100%; cursor: pointer; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #202225; }
-        th, td { padding: 10px; border: 1px solid #333; font-size: 13px; }
+        .card { background: var(--card); padding: 25px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        h1 { border-bottom: 2px solid var(--red); padding-bottom: 10px; color: var(--red); }
+        label { display: block; margin-top: 15px; color: #bbb; font-size: 14px; }
+        select, input, textarea { width: 100%; padding: 12px; margin-top: 5px; background: #202225; border: 1px solid #444; color: white; border-radius: 5px; box-sizing: border-box; }
+        button { background: var(--red); color: white; border: none; padding: 15px; width: 100%; cursor: pointer; font-weight: bold; border-radius: 5px; margin-top: 20px; transition: 0.3s; }
+        button:hover { background: #c0392b; }
+        table { width: 100%; border-collapse: collapse; margin-top: 30px; background: var(--card); }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #2f3136; font-size: 13px; }
+        th { background: #202225; color: var(--red); }
+        .back-link { display: inline-block; margin-bottom: 20px; color: #aaa; text-decoration: none; }
     </style>
 </head>
 <body>
     <div class="container">
-        <a href="/dashboard" style="color: #aaa; text-decoration: none;">← Voltar ao Painel</a>
+        <a href="/dashboard" class="back-link">← Voltar ao Painel</a>
         <h1>⚖️ Sistema de Punições</h1>
-        
+
         <div class="card">
             <form action="/punish" method="POST">
-                <label>Selecionar Membro:</label>
+                <label>Selecione o Membro:</label>
                 <select name="discordId" required>
+                    <option value="">-- Escolha um membro --</option>
                     <% members.forEach(m => { %>
-                        <option value="<%= m.discordId %>"><%= m.ffNick %> (<%= m.username %>)</option>
+                        <option value="<%= m.discordId %>"><%= m.ffNick || m.username %> (ID: <%= m.discordId %>)</option>
                     <% }) %>
                 </select>
 
                 <label>Tipo de Punição:</label>
                 <select name="type" required>
-                    <option value="adv">Advertência (Apenas Registro)</option>
+                    <option value="adv">Advertência (Apenas na Planilha)</option>
                     <option value="mute">Mute / Castigo (Timeout)</option>
                     <option value="kick">Expulsar (Kick)</option>
                     <option value="ban">Banir Permanentemente</option>
                 </select>
 
-                <label>Tempo (Apenas para Mute - em minutos):</label>
-                <input type="number" name="time" placeholder="Ex: 60">
+                <label>Tempo em Minutos (Apenas para Mute):</label>
+                <input type="number" name="time" placeholder="Ex: 60 (para 1 hora)">
 
-                <label>Motivo:</label>
-                <textarea name="reason" required placeholder="Escreva o motivo aqui..."></textarea>
+                <label>Motivo da Punição:</label>
+                <textarea name="reason" rows="3" required placeholder="Descreva o que o membro fez..."></textarea>
 
-                <label>Link da Evidência (Print/Vídeo):</label>
+                <label>Link da Evidência (Print ou Vídeo):</label>
                 <input type="text" name="evidence" placeholder="https://imgur.com/...">
 
-                <button type="submit">APLICAR PUNIÇÃO AGORA</button>
+                <button type="submit">APLICAR PUNIÇÃO</button>
             </form>
         </div>
 
-        <h2>📜 Histórico (Últimas Punições)</h2>
+        <h2>📜 Histórico de Punições</h2>
         <table>
-            <tr>
-                <th>Data</th><th>Membro</th><th>Ação</th><th>Motivo</th><th>Staff</th>
-            </tr>
-            <% history.slice(1).reverse().forEach(h => { %>
+            <thead>
                 <tr>
-                    <td><%= h[7] %></td>
-                    <td><%= h[0] %></td>
-                    <td><%= h[2] %></td>
-                    <td><%= h[3] %></td>
-                    <td><%= h[6] %></td>
+                    <th>Data</th>
+                    <th>Membro</th>
+                    <th>Ação</th>
+                    <th>Motivo</th>
+                    <th>Staff</th>
                 </tr>
-            <% }) %>
+            </thead>
+            <tbody>
+                <% history.slice(1).reverse().forEach(h => { %>
+                <tr>
+                    <td><%= h[0] %></td>
+                    <td><%= h[1] %></td>
+                    <td><b><%= h[3] %></b></td>
+                    <td><%= h[4] %></td>
+                    <td><%= h[7] %></td>
+                </tr>
+                <% }) %>
+            </tbody>
         </table>
     </div>
 </body>
