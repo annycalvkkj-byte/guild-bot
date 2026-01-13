@@ -64,7 +64,7 @@
 
         .section-header {
             display: block;
-            margin: 25px 0 10px 0;
+            margin: 30px 0 10px 0;
             font-weight: bold;
             color: var(--blue);
             text-transform: uppercase;
@@ -78,7 +78,7 @@
             gap: 20px;
         }
 
-        .form-group { margin-bottom: 15px; }
+        .form-group { margin-bottom: 20px; }
 
         label {
             display: block;
@@ -99,6 +99,19 @@
         }
         select:focus, input:focus { border-color: var(--blue); }
 
+        .checkbox-group {
+            background: #202225;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .checkbox-group input { width: 18px; height: 18px; cursor: pointer; }
+
         .btn-save {
             background: var(--green);
             color: white;
@@ -109,15 +122,17 @@
             font-weight: bold;
             font-size: 16px;
             cursor: pointer;
-            margin-top: 25px;
+            margin-top: 30px;
             transition: 0.2s;
         }
         .btn-save:hover { background: #2d7d46; }
 
         .setup-section {
             margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #444;
+            padding: 20px;
+            background: rgba(88, 101, 242, 0.05);
+            border: 1px dashed var(--blue);
+            border-radius: 8px;
         }
 
         .btn-setup {
@@ -137,7 +152,7 @@
             background: rgba(88, 101, 242, 0.1);
             border-left: 4px solid var(--blue);
             padding: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             font-size: 13px;
             color: var(--muted);
         }
@@ -146,7 +161,7 @@
 <body>
 
     <nav>
-        <h2>🛡️ GESTÃO DA GUILDA</h2>
+        <h2>⚔️ PAINEL DE CONFIGURAÇÕES</h2>
         <div class="nav-links">
             <a href="/dashboard">📊 Membros</a>
             <a href="/punishments">⚖️ Punições</a>
@@ -155,18 +170,51 @@
 
     <div class="container">
         <div class="card">
-            <h1>⚙️ Configurações do Sistema</h1>
+            <h1>⚙️ Ajustes do Bot e Guildas</h1>
             
             <div class="info-box">
-                Sempre clique em <b>Salvar Configurações</b> antes de enviar o botão de setup para o Discord.
+                Configure as guildas I e II abaixo. Se uma guilda estiver cheia, marque a opção "LOTADA" para o bot avisar aos novos recrutas.
             </div>
 
             <form action="/save" method="POST">
                 
-                <span class="section-header">Gerenciamento de Cargos</span>
+                <span class="section-header">Gerenciamento de Guildas (I e II)</span>
+                <div class="form-grid">
+                    <!-- GUILDA I -->
+                    <div class="form-group">
+                        <label>Cargo Guilda I:</label>
+                        <select name="roleGuilda1">
+                            <option value="">-- Selecione --</option>
+                            <% roles.forEach(role => { %>
+                                <option value="<%= role.id %>" <%= config.roleGuilda1 == role.id ? 'selected' : '' %>><%= role.name %></option>
+                            <% }) %>
+                        </select>
+                        <div class="checkbox-group">
+                            <input type="checkbox" name="guilda1Full" <%= config.guilda1Full ? 'checked' : '' %>>
+                            <span style="color: var(--red);">Marcar GUILDA I como LOTADA</span>
+                        </div>
+                    </div>
+
+                    <!-- GUILDA II -->
+                    <div class="form-group">
+                        <label>Cargo Guilda II:</label>
+                        <select name="roleGuilda2">
+                            <option value="">-- Selecione --</option>
+                            <% roles.forEach(role => { %>
+                                <option value="<%= role.id %>" <%= config.roleGuilda2 == role.id ? 'selected' : '' %>><%= role.name %></option>
+                            <% }) %>
+                        </select>
+                        <div class="checkbox-group">
+                            <input type="checkbox" name="guilda2Full" <%= config.guilda2Full ? 'checked' : '' %>>
+                            <span style="color: var(--red);">Marcar GUILDA II como LOTADA</span>
+                        </div>
+                    </div>
+                </div>
+
+                <span class="section-header">Hierarquia de Cargos Gerais</span>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Cargo Staff / Oficiais (Aprovação):</label>
+                        <label>Cargo Oficiais / Staff (Verão os tickets):</label>
                         <select name="roleVerificado1">
                             <option value="">-- Selecione --</option>
                             <% roles.forEach(role => { %>
@@ -175,7 +223,7 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Cargo Membro Oficial (Guilda):</label>
+                        <label>Cargo Membro Oficial (Geral):</label>
                         <select name="roleMembro">
                             <option value="">-- Selecione --</option>
                             <% roles.forEach(role => { %>
@@ -184,7 +232,7 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Cargo de Candidato (Pendente):</label>
+                        <label>Cargo de Candidato (Em análise):</label>
                         <select name="roleCandidato">
                             <option value="">-- Selecione --</option>
                             <% roles.forEach(role => { %>
@@ -193,7 +241,7 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Cargo Inicial para Remover:</label>
+                        <label>Cargo Inicial para Remover (Ex: Novato):</label>
                         <select name="roleNovato">
                             <option value="">-- Nenhum --</option>
                             <% roles.forEach(role => { %>
@@ -203,21 +251,19 @@
                     </div>
                 </div>
 
-                <span class="section-header">Canais do Servidor</span>
+                <span class="section-header">Canais do Sistema</span>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Canal de Iniciar Registro (Setup):</label>
+                        <label>Canal de Recrutamento (Ticket):</label>
                         <select name="canalVerificacao">
-                            <option value="">-- Selecione --</option>
                             <% channels.forEach(ch => { %>
                                 <option value="<%= ch.id %>" <%= config.canalVerificacao == ch.id ? 'selected' : '' %>><%= ch.name %></option>
                             <% }) %>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Canal de Recrutamento (Fichas Pendentes):</label>
+                        <label>Canal de Aprovação (Fichas Oficiais):</label>
                         <select name="canalRecrutamento">
-                            <option value="">-- Selecione --</option>
                             <% channels.forEach(ch => { %>
                                 <option value="<%= ch.id %>" <%= config.canalRecrutamento == ch.id ? 'selected' : '' %>><%= ch.name %></option>
                             <% }) %>
@@ -226,54 +272,48 @@
                     <div class="form-group">
                         <label>Canal de Logs (Fichas Prontas):</label>
                         <select name="canalLogs">
-                            <option value="">-- Selecione --</option>
                             <% channels.forEach(ch => { %>
                                 <option value="<%= ch.id %>" <%= config.canalLogs == ch.id ? 'selected' : '' %>><%= ch.name %></option>
                             <% }) %>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Canal de Punições (Mute/Ban):</label>
-                        <select name="canalPunicao">
-                            <option value="">-- Selecione --</option>
-                            <% channels.forEach(ch => { %>
-                                <option value="<%= ch.id %>" <%= config.canalPunicao == ch.id ? 'selected' : '' %>><%= ch.name %></option>
-                            <% }) %>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Canal de Regras da Guilda:</label>
+                        <label>Canal de Regras:</label>
                         <select name="canalRegras">
-                            <option value="">-- Selecione --</option>
                             <% channels.forEach(ch => { %>
                                 <option value="<%= ch.id %>" <%= config.canalRegras == ch.id ? 'selected' : '' %>><%= ch.name %></option>
                             <% }) %>
                         </select>
                     </div>
+                </div>
+
+                <span class="section-header">Guerra de Guilda (Sábado 16h)</span>
+                <div class="checkbox-group" style="margin-bottom: 15px;">
+                    <input type="checkbox" name="avisarGuerra" <%= config.avisarGuerra ? 'checked' : '' %>>
+                    <span style="color: var(--green); font-weight: bold;">ATIVAR AVISO AUTOMÁTICO DE GUERRA</span>
+                </div>
+                <div class="form-grid">
                     <div class="form-group">
-                        <label>Canal de Aviso Guerra (Sábado):</label>
+                        <label>Canal de Aviso:</label>
                         <select name="canalAviso">
-                            <option value="">-- Selecione --</option>
                             <% channels.forEach(ch => { %>
                                 <option value="<%= ch.id %>" <%= config.canalAviso == ch.id ? 'selected' : '' %>><%= ch.name %></option>
                             <% }) %>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label>Texto do Aviso:</label>
+                        <input type="text" name="msgGuerra" value="<%= config.msgGuerra || '@everyone ⚔️ A GUERRA DE GUILDA COMEÇOU!' %>">
+                    </div>
                 </div>
 
-                <span class="section-header">Mensagens e Textos</span>
-                <div class="form-group">
-                    <label>Texto do Aviso de Guerra (Sábado 16h):</label>
-                    <input type="text" name="msgGuerra" value="<%= config.msgGuerra || '@everyone ⚔️ A GUERRA DE GUILDA COMEÇOU!' %>">
-                </div>
-
-                <button type="submit" class="btn-save">💾 SALVAR CONFIGURAÇÕES</button>
+                <button type="submit" class="btn-save">💾 SALVAR TODAS AS CONFIGURAÇÕES</button>
             </form>
 
             <div class="setup-section">
-                <span class="section-header">Ação de Setup</span>
-                <p style="font-size: 13px; color: var(--muted); margin-bottom: 15px;">
-                    Isso enviará a mensagem oficial com o botão de recrutamento para o canal selecionado acima.
+                <span class="section-header">Ação de Verificação</span>
+                <p style="font-size: 13px; color: var(--muted); margin-bottom: 10px;">
+                    Isso enviará a mensagem de recrutamento com o botão de início para o canal de "Ticket" configurado acima.
                 </p>
                 <form action="/send-setup" method="POST">
                     <button type="submit" class="btn-setup">🚀 ENVIAR BOTÃO AO DISCORD</button>
