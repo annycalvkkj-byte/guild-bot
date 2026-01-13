@@ -25,7 +25,14 @@ const sheets = google.sheets({ version: 'v4', auth });
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 
 const client = new Client({
-    intents: [3276799], // Todos os Intents ativos
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildPresences,
+        GatewayIntentBits.GuildMessageReactions
+    ],
     partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
@@ -35,9 +42,8 @@ mongoose.connect(process.env.MONGO_URI);
 const User = mongoose.model('User', new mongoose.Schema({
     discordId: String, username: String, ffNick: String, ffId: String,
     idade: Number, genero: String, estado: String, fotoUrl: String,
-    lastMessage: { type: Date, default: Date.now },
     lastSeen: { type: Date, default: Date.now },
-    warnings: [{ reason: String, date: { type: Date, default: Date.now } }]
+    warnings: [{ reason: String, evidence: String, date: { type: Date, default: Date.now } }]
 }));
 
 const GuildConfig = mongoose.model('GuildConfig', new mongoose.Schema({
@@ -54,7 +60,7 @@ async function setupSheet() {
         const tabs = meta.data.sheets.map(s => s.properties.title);
         if (!tabs.includes('Respostas')) {
             await sheets.spreadsheets.batchUpdate({ spreadsheetId: SPREADSHEET_ID, resource: { requests: [{ addSheet: { properties: { title: 'Respostas' } } }] } });
-            await sheets.spreadsheets.values.update({ spreadsheetId: SPREADSHEET_ID, range: 'Respostas!A1:K1', valueInputOption: 'USER_ENTERED', resource: { values: [["ID Discord", "Tag", "Nome", "Nick FF", "UID", "Idade", "Gênero", "Estado", "Foto", "Status", "Data"]] } });
+            await sheets.spreadsheets.values.update({ spreadsheetId: SPREADSHEET_ID, range: 'Respostas!A1:K1', valueInputOption: 'USER_ENTERED', resource: { values: [["ID Discord", "Tag", "Nome", "Nick FF", "UID", "Idade", "Gênero", "Estado", "Foto", "Já na Guilda?", "Data"]] } });
         }
         if (!tabs.includes('Punições')) {
             await sheets.spreadsheets.batchUpdate({ spreadsheetId: SPREADSHEET_ID, resource: { requests: [{ addSheet: { properties: { title: 'Punições' } } }] } });
@@ -83,6 +89,7 @@ client.on('interactionCreate', async (i) => {
     if (i.isButton() && i.customId === 'btn_verificar') {
         const chan = await i.guild.channels.create({
             name: `recrut-${i.user.username}`,
+            type: ChannelType.GuildText,
             permissionOverwrites: [
                 { id: i.guild.id, deny: [PermissionsBitField.Flags.ViewChannel] },
                 { id: i.user.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.AttachFiles] },
@@ -90,30 +97,38 @@ client.on('interactionCreate', async (i) => {
             ]
         });
         await i.reply({ content: `Canal criado: ${chan}`, ephemeral: true });
-        await chan.send(`${i.user}, mande as respostas uma por uma.\n**1: Qual seu Nome Real?**`);
+
+        const embedP1 = new EmbedBuilder().setTitle("🛡️ Pergunta 1").setDescription("Qual seu Nome Real?").setColor("#5865F2");
+        await chan.send({ content: `${i.user}`, embeds: [embedP1] });
 
         const col = chan.createMessageCollector({ filter: m => m.author.id === i.user.id, time: 900000 });
         let p = 1; const res = { id: i.user.id, tag: i.user.tag };
 
         col.on('collect', async (m) => {
-            if (p === 1) { res.nome = m.content; await m.reply("**2: Nick no FF?**"); }
-            else if (p === 2) { res.nick = m.content; await m.reply("**3: Seu UID?**"); }
-            else if (p === 3) { res.uid = m.content; await m.reply("**4: Sua Idade?**"); }
+            if (p === 1) { res.nome = m.content; await m.reply({ embeds: [new EmbedBuilder().setTitle("🛡️ Pergunta 2").setDescription("Qual seu Nick no FF?").setColor("#5865F2")] }); }
+            else if (p === 2) { res.nick = m.content; await m.reply({ embeds: [new EmbedBuilder().setTitle("🛡️ Pergunta 3").setDescription("Qual seu ID (UID)?\n*Apenas números são permitidos.*").setColor("#5865F2")] }); }
+            else if (p === 3) { 
+                if (isNaN(m.content)) return m.reply("❌ **ERRO:** O ID deve conter apenas números! Digite novamente.");
+                res.uid = m.content; 
+                await m.reply({ embeds: [new EmbedBuilder().setTitle("🛡️ Pergunta 4").setDescription("Qual sua Idade?").setColor("#5865F2")] }); 
+            }
             else if (p === 4) {
                 res.idade = parseInt(m.content);
-                if (res.idade < 14) { await m.reply("❌ Banido: Menor de 14 anos."); return i.member.ban({ reason: "Menor de 14" }); }
-                await m.reply("**5: Gênero (Masculino/Feminino)?**");
+                if (res.idade < 14) { await m.reply("❌ **BANIDO:** Menor de 14 anos não permitido."); return i.member.ban({ reason: "Idade < 14" }); }
+                await m.reply({ embeds: [new EmbedBuilder().setTitle("🛡️ Pergunta 5").setDescription("Qual seu Gênero (Masculino/Feminino)?").setColor("#5865F2")] });
             }
-            else if (p === 5) { res.genero = m.content; await m.reply("**6: Seu Estado?**"); }
-            else if (p === 6) { res.estado = m.content; await m.reply("**7: Mande a FOTO do perfil do jogo.**"); }
+            else if (p === 5) { res.genero = m.content; await m.reply({ embeds: [new EmbedBuilder().setTitle("🛡️ Pergunta 6").setDescription("Qual seu Estado?").setColor("#5865F2")] }); }
+            else if (p === 6) { res.estado = m.content; await m.reply({ embeds: [new EmbedBuilder().setTitle("🛡️ Pergunta 7").setDescription("Mande a **FOTO** do perfil do jogo (Print).").setColor("#5865F2")] }); }
             else if (p === 7) {
                 res.foto = m.attachments.first()?.url;
-                if (!res.foto) return m.reply("Mande a foto!");
+                if (!res.foto) return m.reply("❌ Envie a foto para prosseguir!");
                 const row = new ActionRowBuilder().addComponents(
                     new ButtonBuilder().setCustomId('sim_ta').setLabel('Já estou na Guilda').setStyle(ButtonStyle.Success),
                     new ButtonBuilder().setCustomId('nao_ta').setLabel('Não estou ainda').setStyle(ButtonStyle.Danger)
                 );
-                await m.reply({ content: "Você já está na guilda no jogo?", components: [row] });
+                await m.reply({ embeds: [new EmbedBuilder().setTitle("🏁 Último Passo").setDescription("Você já está na guilda dentro do jogo?").setColor("#5865F2")], components: [row] });
+                
+                // Salvar provisório na planilha
                 await sheets.spreadsheets.values.append({ spreadsheetId: SPREADSHEET_ID, range: 'Respostas!A:K', valueInputOption: 'USER_ENTERED', resource: { values: [[res.id, res.tag, res.nome, res.nick, res.uid, res.idade, res.genero, res.estado, res.foto, "PENDENTE", new Date().toLocaleString()]] } });
                 col.stop();
             }
@@ -125,39 +140,42 @@ client.on('interactionCreate', async (i) => {
         const sim = i.customId === 'sim_ta';
         if (sim) {
             await i.member.roles.add(config.roleMembro).catch(() => {});
-            await i.reply(`🎉 Bem-vindo Oficial! Leia as regras em <#${config.canalRegras}>`);
+            await i.reply({ embeds: [new EmbedBuilder().setTitle("🎉 Bem-vindo Oficial").setDescription(`Você agora é um membro registrado! Leia as regras em <#${config.canalRegras}>`).setColor("Green")] });
         } else {
             await i.member.roles.add(config.roleCandidato).catch(() => {});
             const rChan = client.channels.cache.get(config.canalRecrutamento);
             if (rChan) {
-                const emb = new EmbedBuilder().setTitle("Solicitação de Entrada").setDescription(`Membro: ${i.user.tag}\nID Discord: ${i.user.id}`).setColor("Orange");
+                const emb = new EmbedBuilder().setTitle("⚔️ Nova Solicitação").setDescription(`O membro **${i.user.tag}** enviou uma ficha.\nID Discord: ${i.user.id}`).setColor("Orange");
                 const msg = await rChan.send({ embeds: [emb] }); await msg.react('✅');
             }
-            await i.reply("Sua solicitação foi enviada aos Oficiais!");
+            await i.reply({ embeds: [new EmbedBuilder().setTitle("✅ Enviado").setDescription("Sua ficha foi enviada aos Oficiais. Aguarde aprovação!").setColor("Blue")] });
         }
         setTimeout(() => i.channel.delete().catch(() => {}), 5000);
     }
 });
 
-// APROVAÇÃO POR REAÇÃO ✅
+// APROVAÇÃO ✅
 client.on('messageReactionAdd', async (reaction, user) => {
     if (user.bot || reaction.emoji.name !== '✅') return;
     const config = await GuildConfig.findOne({ guildId: reaction.message.guildId });
     const discordId = reaction.message.embeds[0].description.split('ID Discord: ')[1];
     const member = await reaction.message.guild.members.fetch(discordId);
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Respostas!A:K' });
-    const data = res.data.values.find(r => r[0] === discordId);
+    const resSheet = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Respostas!A:K' });
+    const data = resSheet.data.values.find(r => r[0] === discordId);
 
     if (data && member) {
         const [id, tag, nome, nick, uid, idade, genero, estado] = data;
         await member.setNickname(nick).catch(()=>{});
         await member.roles.add(config.roleMembro);
         await member.roles.remove(config.roleCandidato).catch(()=>{});
+
+        // APLICAR CARGOS DINÂMICOS (GÊNERO COM COR)
         await addColoredRole(reaction.message.guild, member, genero);
         await addColoredRole(reaction.message.guild, member, estado);
         await addColoredRole(reaction.message.guild, member, `Idade: ${idade}`);
         await addColoredRole(reaction.message.guild, member, `UID: ${uid}`);
-        await member.send("⚔️ Sua solicitação foi aceita!").catch(()=>{});
+
+        await member.send({ embeds: [new EmbedBuilder().setTitle("⚔️ Aprovado").setDescription("Sua solicitação para entrar na guilda foi aceita!").setColor("Green")] }).catch(()=>{});
         await reaction.message.delete();
     }
 });
@@ -177,14 +195,13 @@ app.get('/', (req, res) => res.render('login'));
 app.get('/auth/discord', passport.authenticate('discord'));
 app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => res.redirect('/dashboard'));
 
-// DASHBOARD EM TEMPO REAL (Filtra apenas quem está no servidor)
 app.get('/dashboard', async (req, res) => {
     if (!req.isAuthenticated()) return res.redirect('/');
     const guild = client.guilds.cache.get(process.env.GUILD_ID);
     const dbUsers = await User.find();
     const members = (await Promise.all(dbUsers.map(async (u) => {
         const m = guild.members.cache.get(u.discordId);
-        if (!m) return null; // Remove da lista se não estiver no servidor
+        if (!m) return null;
         return {
             id: u._id, name: m.user.tag, avatar: m.user.displayAvatarURL(),
             ffNick: u.ffNick, ffId: u.ffId, status: m.presence?.status || 'offline',
@@ -213,7 +230,16 @@ app.post('/punish', async (req, res) => {
         if (type === 'ban') await member.ban({ reason });
         await sheets.spreadsheets.values.append({ spreadsheetId: SPREADSHEET_ID, range: 'Punições!A:H', valueInputOption: 'USER_ENTERED', resource: { values: [[new Date().toLocaleString(), member.user.tag, discordId, type.toUpperCase(), reason, evidence, time || 'PERM', req.user.username]] } });
         const ch = client.channels.cache.get(config.canalPunicao);
-        if (ch) ch.send({ embeds: [new EmbedBuilder().setTitle("🚨 PUNIÇÃO").setDescription(`Membro: ${member.user.tag}\nTipo: ${type}\nMotivo: ${reason}`).setColor("Red")] });
+        if (ch) {
+            const punEmbed = new EmbedBuilder().setTitle("🚨 NOVA PUNIÇÃO").setColor("Red")
+                .addFields(
+                    { name: "👤 Membro", value: member.user.tag, inline: true },
+                    { name: "⚖️ Tipo", value: type.toUpperCase(), inline: true },
+                    { name: "📝 Motivo", value: reason },
+                    { name: "🔗 Evidência", value: evidence || "Não fornecida" }
+                );
+            ch.send({ embeds: [punEmbed] });
+        }
     }
     res.redirect('/punishments');
 });
@@ -233,7 +259,7 @@ app.post('/send-setup', async (req, res) => {
     const config = await GuildConfig.findOne({ guildId: process.env.GUILD_ID });
     const ch = await client.channels.fetch(config.canalVerificacao);
     const btn = new ButtonBuilder().setCustomId('btn_verificar').setLabel('Iniciar Recrutamento').setStyle(ButtonStyle.Primary);
-    await ch.send({ embeds: [new EmbedBuilder().setTitle("⚔️ RECRUTAMENTO").setColor("Blue")], components: [new ActionRowBuilder().addComponents(btn)] });
+    await ch.send({ embeds: [new EmbedBuilder().setTitle("⚔️ RECRUTAMENTO").setDescription("Clique no botão abaixo para iniciar seu processo de entrada.").setColor("Blue")], components: [new ActionRowBuilder().addComponents(btn)] });
     res.redirect('/settings');
 });
 
